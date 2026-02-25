@@ -6,6 +6,8 @@ import { streaks, users } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { calculateGlobalStreak } from '@/lib/streak'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)

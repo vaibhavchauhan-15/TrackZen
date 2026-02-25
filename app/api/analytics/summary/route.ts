@@ -13,6 +13,8 @@ import {
 } from '@/lib/db/schema'
 import { eq, and, gte, sql } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
