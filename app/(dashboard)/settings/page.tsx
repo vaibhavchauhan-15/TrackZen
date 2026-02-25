@@ -8,7 +8,7 @@ import { User, Bell, Shield, Palette } from 'lucide-react'
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div>
         <h1 className="text-3xl font-bold text-text-primary">Settings</h1>
         <p className="mt-2 text-text-secondary">
@@ -16,7 +16,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Card>
+      <Card className="transition-shadow hover:shadow-lg duration-200">
         <CardHeader>
           <div className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -37,7 +37,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="transition-shadow hover:shadow-lg duration-200">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5" />

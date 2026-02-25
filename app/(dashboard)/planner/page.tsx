@@ -1,41 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { CardSkeleton } from '@/components/ui/loading-spinner'
+import { useDashboard } from '@/components/providers/dashboard-provider'
 import { Plus, Calendar, Clock, Target } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 export default function PlannerPage() {
-  const [plans, setPlans] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const res = await fetch('/api/plans')
-        const data = await res.json()
-        setPlans(data.plans || [])
-      } catch (error) {
-        console.error('Failed to fetch plans:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchPlans()
-  }, [])
+  const { data, loading } = useDashboard()
+  
+  const plans = data?.plans || []
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-16 rounded-lg bg-bg-surface animate-pulse" />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 rounded-lg bg-bg-surface animate-pulse" />
-          ))}
+          <CardSkeleton count={6} />
         </div>
       </div>
     )
@@ -43,14 +28,14 @@ export default function PlannerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div>
           <h1 className="text-3xl font-bold text-text-primary">Study Planner</h1>
           <p className="mt-2 text-text-secondary">
             Manage your study plans and track progress
           </p>
         </div>
-        <Link href="/planner/new">
+        <Link href="/planner/new" prefetch={true}>
           <Button size="lg">
             <Plus className="mr-2 h-5 w-5" />
             New Plan
@@ -68,7 +53,7 @@ export default function PlannerPage() {
             <p className="text-text-secondary mb-6">
               Create your first study plan to get started
             </p>
-            <Link href="/planner/new">
+            <Link href="/planner/new" prefetch={true}>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Plan
@@ -79,14 +64,13 @@ export default function PlannerPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {plans.map((plan: any, index: number) => (
-            <motion.div
+            <div
               key={plan.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              <Link href={`/planner/${plan.id}`}>
-                <Card className="cursor-pointer hover:shadow-lg transition-all">
+              <Link href={`/planner/${plan.id}`} prefetch={true}>
+                <Card className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 duration-200">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -126,7 +110,7 @@ export default function PlannerPage() {
                   </CardContent>
                 </Card>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

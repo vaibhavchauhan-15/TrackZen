@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { lazy, Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { CardSkeleton } from '@/components/ui/loading-spinner'
+import { useDashboard } from '@/components/providers/dashboard-provider'
 import {
   Flame,
   Calendar,
@@ -16,94 +17,65 @@ import {
   Circle,
   Plus,
 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
 
 export default function DashboardPage() {
-  const { data: session } = useSession()
-  const [stats, setStats] = useState({
-    streak: 0,
-    todayTasks: [],
-    todayHabits: [],
-    activePlans: [],
-    weeklyHours: 0,
-    habitsCompleted: 0,
-    nextExamDays: null,
-  })
-  const [loading, setLoading] = useState(true)
+  const { data, loading } = useDashboard()
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const res = await fetch('/api/analytics/summary')
-        const data = await res.json()
-        setStats(data)
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchDashboardData()
-  }, [])
-
-  if (loading) {
+  if (loading || !data) {
     return (
       <div className="space-y-6">
         <div className="h-32 rounded-lg bg-bg-surface animate-pulse" />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 rounded-lg bg-bg-surface animate-pulse" />
-          ))}
+          <CardSkeleton count={4} />
         </div>
       </div>
     )
   }
 
+  const { summary, user } = data
+  const userName = user?.name?.split(' ')[0] || 'there'
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         <h1 className="text-3xl font-bold text-text-primary">
-          Welcome back, {session?.user?.name?.split(' ')[0]}! 👋
+          Welcome back, {userName}! 👋
         </h1>
         <p className="mt-2 text-text-secondary">
           Here's your productivity overview for today
         </p>
-      </motion.div>
+      </div>
 
       {/* Streak Banner */}
-      <StreakBanner streak={stats.streak} />
+      <StreakBanner streak={summary.streak} />
 
       {/* Quick Stats */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<Clock className="h-6 w-6" />}
           label="Study Hours This Week"
-          value={`${stats.weeklyHours}h`}
+          value={`${summary.weeklyHours}h`}
           trend="+12%"
           color="accent-purple"
         />
         <StatCard
           icon={<CheckCircle2 className="h-6 w-6" />}
           label="Habits Completed Today"
-          value={`${stats.habitsCompleted}/${stats.todayHabits.length}`}
+          value={`${summary.habitsCompleted}/${summary.todayHabits.length}`}
           color="accent-green"
         />
         <StatCard
           icon={<Calendar className="h-6 w-6" />}
           label="Days Till Next Exam"
-          value={stats.nextExamDays !== null ? `${stats.nextExamDays}` : 'None'}
+          value={summary.nextExamDays !== null ? `${summary.nextExamDays}` : 'None'}
           color="accent-orange"
         />
         <StatCard
           icon={<TrendingUp className="h-6 w-6" />}
           label="Longest Streak"
-          value={`${stats.streak} days`}
+          value={`${summary.streak} days`}
           color="streak-gold"
         />
       </div>
@@ -112,13 +84,13 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Today's Focus */}
         <div className="lg:col-span-2 space-y-6">
-          <TodaysFocus tasks={stats.todayTasks} />
-          <ActivePlans plans={stats.activePlans} />
+          <TodaysFocus tasks={summary.todayTasks} />
+          <ActivePlans plans={summary.activePlans} />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <HabitRings habits={stats.todayHabits} />
+          <HabitRings habits={summary.todayHabits} />
           <QuickActions />
         </div>
       </div>
@@ -146,11 +118,8 @@ function StreakBanner({ streak }: { streak: number }) {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className={`relative overflow-hidden rounded-xl bg-gradient-to-r ${getStreakColor(
+    <div
+      className={`animate-in fade-in slide-in-from-bottom-2 duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r ${getStreakColor(
         streak
       )} p-6 text-white`}
     >
@@ -159,22 +128,12 @@ function StreakBanner({ streak }: { streak: number }) {
           <p className="text-sm font-medium opacity-90">{getStreakTitle(streak)}</p>
           <h2 className="mt-1 text-4xl font-bold">{streak} Day Streak</h2>
         </div>
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 10, -10, 0],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            repeatType: 'reverse',
-          }}
-        >
+        <div className="animate-pulse">
           <Flame className="h-16 w-16" />
-        </motion.div>
+        </div>
       </div>
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-    </motion.div>
+    </div>
   )
 }
 
@@ -192,24 +151,22 @@ function StatCard({
   color: string
 }) {
   return (
-    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className={`rounded-lg bg-${color}/10 p-3 text-${color}`}>{icon}</div>
-            {trend && (
-              <Badge variant="secondary" className="text-accent-green">
-                {trend}
-              </Badge>
-            )}
-          </div>
-          <div className="mt-4">
-            <p className="text-sm text-text-secondary">{label}</p>
-            <p className="mt-1 text-2xl font-bold text-text-primary">{value}</p>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <Card className="transition-transform hover:-translate-y-1 duration-200">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className={`rounded-lg bg-${color}/10 p-3 text-${color}`}>{icon}</div>
+          {trend && (
+            <Badge variant="secondary" className="text-accent-green">
+              {trend}
+            </Badge>
+          )}
+        </div>
+        <div className="mt-4">
+          <p className="text-sm text-text-secondary">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-text-primary">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -244,12 +201,10 @@ function TodaysFocus({ tasks }: { tasks: any[] }) {
         ) : (
           <div className="space-y-3">
             {tasks.map((task, index) => (
-              <motion.div
+              <div
                 key={task.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-bg-elevated transition-colors"
+                className="animate-in fade-in slide-in-from-left-2 duration-300 flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-bg-elevated transition-colors"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 <button className="flex-shrink-0">
                   {task.completed ? (
@@ -263,7 +218,7 @@ function TodaysFocus({ tasks }: { tasks: any[] }) {
                   <p className="text-sm text-text-secondary">{task.estimatedHours}h estimated</p>
                 </div>
                 <Badge variant="secondary">{task.priority}</Badge>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

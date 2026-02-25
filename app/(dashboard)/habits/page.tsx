@@ -1,37 +1,24 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { CardSkeleton } from '@/components/ui/loading-spinner'
+import { useDashboard } from '@/components/providers/dashboard-provider'
 import { Target, Plus, CheckCircle2, Circle, TrendingUp, Clock, Flag } from 'lucide-react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { HabitDialog } from '@/components/habits/habit-dialog'
+
+// Lazy load the HabitDialog for better initial page load
+const HabitDialog = lazy(() => import('@/components/habits/habit-dialog').then(mod => ({ default: mod.HabitDialog })))
 
 export default function HabitsPage() {
-  const [habits, setHabits] = useState([])
-  const [todayLogs, setTodayLogs] = useState<Record<string, any>>({})
-  const [loading, setLoading] = useState(true)
+  const { data, loading, updateHabits, refetch } = useDashboard()
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  useEffect(() => {
-    fetchHabits()
-  }, [])
-
-  const fetchHabits = async () => {
-    try {
-      const res = await fetch('/api/habits')
-      const data = await res.json()
-      setHabits(data.habits || [])
-      setTodayLogs(data.todayLogs || {})
-    } catch (error) {
-      console.error('Failed to fetch habits:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const habits = data?.habits || []
+  const todayLogs = data?.todayLogs || {}
 
   const toggleHabit = async (habitId: string) => {
     try {
@@ -44,12 +31,14 @@ export default function HabitsPage() {
           date: new Date().toISOString().split('T')[0],
         }),
       })
-      const data = await res.json()
-      if (data.success) {
-        setTodayLogs({
+      const result = await res.json()
+      if (result.success) {
+        // Update local state
+        const updatedLogs = {
           ...todayLogs,
-          [habitId]: data.log,
-        })
+          [habitId]: result.log,
+        }
+        updateHabits(habits, updatedLogs)
       }
     } catch (error) {
       console.error('Failed to toggle habit:', error)
@@ -64,9 +53,7 @@ export default function HabitsPage() {
       <div className="space-y-6">
         <div className="h-16 rounded-lg bg-bg-surface animate-pulse" />
         <div className="grid gap-6 md:grid-cols-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 rounded-lg bg-bg-surface animate-pulse" />
-          ))}
+          <CardSkeleton count={4} />
         </div>
       </div>
     )
@@ -74,7 +61,7 @@ export default function HabitsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div>
           <h1 className="text-3xl font-bold text-text-primary">Habit Tracker</h1>
           <p className="mt-2 text-text-secondary">
@@ -132,11 +119,10 @@ export default function HabitsPage() {
             const isCompleted = log?.status === 'done'
 
             return (
-              <motion.div
+              <div
                 key={habit.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                style={{ animationDelay: `${index * 30}ms` }}
               >
                 <Card className="cursor-pointer hover:shadow-lg transition-all">
                   <CardContent className="p-6">
@@ -191,18 +177,22 @@ export default function HabitsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             )
           })}
         </div>
       )}
 
       {/* Habit Creation Dialog */}
-      <HabitDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={fetchHabits}
-      />
+      <Suspense fallback={<div />}>
+        {dialogOpen && (
+          <HabitDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            onSuccess={refetch}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

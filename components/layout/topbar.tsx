@@ -12,28 +12,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useDashboard } from '@/components/providers/dashboard-provider'
 
 export function TopBar() {
   const { data: session } = useSession()
-  const [streak, setStreak] = useState(0)
-
-  useEffect(() => {
-    // Fetch user's current streak
-    const fetchStreak = async () => {
-      try {
-        const res = await fetch('/api/streaks')
-        const data = await res.json()
-        if (data.globalStreak !== undefined) {
-          setStreak(data.globalStreak)
-        }
-      } catch (error) {
-        console.error('Failed to fetch streak:', error)
-      }
-    }
-    fetchStreak()
-  }, [])
+  const { data } = useDashboard()
+  
+  const streak = data?.streak || 0
+  const loading = !data
 
   const getStreakColor = (days: number) => {
     if (days === 0) return 'text-text-muted'
@@ -53,7 +39,7 @@ export function TopBar() {
           <input
             type="text"
             placeholder="Search plans, habits, topics..."
-            className="h-10 w-full rounded-lg border border-border bg-bg-elevated pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/20"
+            className="h-10 w-full rounded-lg border border-border bg-bg-elevated pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/20 transition-all"
           />
         </div>
       </div>
@@ -61,14 +47,13 @@ export function TopBar() {
       {/* Right Section */}
       <div className="flex items-center gap-4">
         {/* Streak Badge */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="flex items-center gap-2 rounded-lg border border-border bg-bg-elevated px-3 py-2"
-        >
-          <Flame className={`h-5 w-5 ${getStreakColor(streak)}`} />
-          <span className="text-sm font-semibold text-text-primary">{streak}</span>
-          <span className="text-xs text-text-muted">day streak</span>
-        </motion.div>
+        {!loading && (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-bg-elevated px-3 py-2 transition-transform hover:scale-105 duration-200">
+            <Flame className={`h-5 w-5 ${getStreakColor(streak)}`} />
+            <span className="text-sm font-semibold text-text-primary">{streak}</span>
+            <span className="text-xs text-text-muted">day streak</span>
+          </div>
+        )}
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">

@@ -6,19 +6,20 @@ import { plans, users, topics as topicsTable } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 // Helper function to convert priority to enum value
-function normalizePriority(priority: any): 'high' | 'medium' | 'low' {
+function normalizePriority(priority: any): 'highest' | 'high' | 'medium' | 'low' {
   if (!priority) return 'medium'
   
   // If it's already a valid enum value
-  if (priority === 'high' || priority === 'medium' || priority === 'low') {
+  if (priority === 'highest' || priority === 'high' || priority === 'medium' || priority === 'low') {
     return priority
   }
   
-  // Convert numeric values to enum (1-5 scale or 1-3 scale)
+  // Convert numeric values to enum (1-5 scale)
   const numPriority = typeof priority === 'string' ? parseInt(priority) : priority
-  if (numPriority === 1) return 'high'
-  if (numPriority === 2) return 'medium'
-  if (numPriority >= 3) return 'low'  // 3, 4, 5 all map to low
+  if (numPriority === 1) return 'highest'
+  if (numPriority === 2) return 'high'
+  if (numPriority === 3) return 'medium'
+  if (numPriority >= 4) return 'low'  // 4, 5 map to low
   
   // Default fallback
   return 'medium'

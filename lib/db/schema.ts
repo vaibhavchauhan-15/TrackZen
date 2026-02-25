@@ -8,7 +8,7 @@ export const topicStatusEnum = pgEnum('topic_status', ['not_started', 'in_progre
 export const habitFrequencyEnum = pgEnum('habit_frequency', ['daily', 'weekly', 'monthly'])
 export const habitLogStatusEnum = pgEnum('habit_log_status', ['done', 'missed', 'skipped'])
 export const streakTypeEnum = pgEnum('streak_type', ['global', 'plan', 'habit'])
-export const topicPriorityEnum = pgEnum('topic_priority', ['high', 'medium', 'low'])
+export const topicPriorityEnum = pgEnum('topic_priority', ['highest', 'high', 'medium', 'low'])
 export const revisionStageEnum = pgEnum('revision_stage', ['first', 'second', 'third'])
 export const mockTestStatusEnum = pgEnum('mock_test_status', ['scheduled', 'completed', 'analysed'])
 

@@ -1,12 +1,17 @@
 'use client'
 
+import { lazy, Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { CardSkeleton } from '@/components/ui/loading-spinner'
 import { TrendingUp, Calendar, Target, Flame } from 'lucide-react'
+
+// Lazy load charts if you add them later
+// const Charts = lazy(() => import('@/components/analytics/charts'))
 
 export default function AnalyticsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div>
         <h1 className="text-3xl font-bold text-text-primary">Analytics</h1>
         <p className="mt-2 text-text-secondary">
@@ -30,27 +35,27 @@ export default function AnalyticsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6 animate-in fade-in duration-200">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
+            <Card className="transition-transform hover:-translate-y-1 duration-200">
               <CardHeader>
                 <CardDescription>Total Study Hours</CardDescription>
                 <CardTitle className="text-3xl">127h</CardTitle>
               </CardHeader>
             </Card>
-            <Card>
+            <Card className="transition-transform hover:-translate-y-1 duration-200">
               <CardHeader>
                 <CardDescription>Active Plans</CardDescription>
                 <CardTitle className="text-3xl">3</CardTitle>
               </CardHeader>
             </Card>
-            <Card>
+            <Card className="transition-transform hover:-translate-y-1 duration-200">
               <CardHeader>
                 <CardDescription>Habits Completed</CardDescription>
                 <CardTitle className="text-3xl">89%</CardTitle>
               </CardHeader>
             </Card>
-            <Card>
+            <Card className="transition-transform hover:-translate-y-1 duration-200">
               <CardHeader>
                 <CardDescription>Current Streak</CardDescription>
                 <div className="flex items-center gap-2">
@@ -72,7 +77,13 @@ export default function AnalyticsPage() {
                   const height = Math.random() * 100
                   return (
                     <div key={day} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full bg-accent-purple rounded-t-lg transition-all hover:bg-accent-purple/80" style={{ height: `${height}%` }} />
+                      <div 
+                        className="w-full bg-accent-purple rounded-t-lg transition-all hover:bg-accent-purple/80 animate-in slide-in-from-bottom duration-500" 
+                        style={{ 
+                          height: `${height}%`,
+                          animationDelay: `${i * 50}ms`
+                        }} 
+                      />
                       <span className="text-xs text-text-secondary">{day}</span>
                     </div>
                   )
@@ -82,7 +93,7 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="study" className="space-y-6">
+        <TabsContent value="study" className="space-y-6 animate-in fade-in duration-200">
           <Card>
             <CardHeader>
               <CardTitle>Study Analytics</CardTitle>
@@ -94,7 +105,7 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="habits" className="space-y-6">
+        <TabsContent value="habits" className="space-y-6 animate-in fade-in duration-200">
           <Card>
             <CardHeader>
               <CardTitle>Habit Analytics</CardTitle>

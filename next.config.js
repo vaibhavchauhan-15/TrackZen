@@ -12,6 +12,18 @@ const nextConfig = {
       },
     ],
   },
+  // Enable compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Optimize JS & CSS
+  swcMinify: true,
+  // Enable React Server Components optimizations
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion', 'recharts'],
+  },
+  // Prefetch all links on hover
+  reactStrictMode: true,
 }
 
 module.exports = nextConfig

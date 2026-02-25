@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, Calendar, Target, BarChart3, Settings } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -27,6 +26,7 @@ export function Sidebar() {
           alt="TrackZen Logo" 
           width={140} 
           height={32}
+          priority
           className="object-contain"
         />
       </div>
@@ -39,22 +39,16 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              prefetch={true}
               className={cn(
-                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
                 isActive
                   ? 'bg-accent-purple text-white'
                   : 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary'
               )}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 rounded-lg bg-accent-purple"
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <item.icon className="relative h-5 w-5" />
-              <span className="relative">{item.name}</span>
+              <item.icon className="h-5 w-5" />
+              <span>{item.name}</span>
             </Link>
           )
         })}

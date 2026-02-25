@@ -47,42 +47,84 @@ export default function NewPlanPage() {
   const [topics, setTopics] = useState<Topic[]>([])
   const [expandedTopicIndex, setExpandedTopicIndex] = useState<number | null>(null)
   const [expandedSubtopics, setExpandedSubtopics] = useState<{ [key: number]: boolean }>({})
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState('')
+  const [isAiGenerated, setIsAiGenerated] = useState(false)
+  const [currentTab, setCurrentTab] = useState('manual')
 
   const handleAIGenerate = async () => {
     setLoading(true)
+    setIsGenerating(true)
     setError('')
+    setTopics([]) // Clear existing topics
+    setGenerationProgress('🤖 Connecting to AI...')
+    
     try {
+      setGenerationProgress('🧠 AI is analyzing your request...')
+      
       const res = await fetch('/api/ai/generate-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: aiPrompt }),
       })
       const data = await res.json()
-      if (data.topics) {
-        const generatedTopics = data.topics.map((t: any) => ({
-          ...t,
-          priority: t.priority || 3,
-          weightage: t.weightage || 0,
-          subtopics: t.subtopics || []
-        }))
-        setTopics(generatedTopics)
-        // Expand the last topic by default
-        if (generatedTopics.length > 0) {
-          setExpandedTopicIndex(generatedTopics.length - 1)
-          // Initialize with last topic's subtopics expanded
-          const initialExpandedSubtopics: { [key: number]: boolean } = {}
-          initialExpandedSubtopics[generatedTopics.length - 1] = true
-          setExpandedSubtopics(initialExpandedSubtopics)
-        }
-      }
+      
       if (data.error) {
         setError(data.error)
+        setIsGenerating(false)
+        setLoading(false)
+        return
+      }
+      
+      if (data.topics) {
+        setGenerationProgress('✨ Generating your study plan...')
+        
+        // Simulate sequential topic generation for better UX
+        const generatedTopics = data.topics.map((t: any) => {
+          const mappedSubtopics = (t.subtopics || []).map((st: any) => ({
+            title: st.title || '',
+            estimatedHours: st.estimatedHours || st.estimated_hours || 0,
+            priority: st.priority || 3
+          }))
+          
+          const totalHours = mappedSubtopics.reduce((sum: number, st: any) => sum + (st.estimatedHours || 0), 0)
+          
+          return {
+            title: t.title || '',
+            estimatedHours: totalHours,
+            priority: t.priority || 3,
+            weightage: t.weightage || 0,
+            subtopics: mappedSubtopics
+          }
+        })
+        
+        // Add topics sequentially with animation
+        for (let i = 0; i < generatedTopics.length; i++) {
+          setGenerationProgress(`📝 Adding topic ${i + 1}/${generatedTopics.length}: ${generatedTopics[i].title}`)
+          
+          await new Promise(resolve => setTimeout(resolve, 300)) // Delay for visual effect
+          
+          setTopics(prev => [...prev, generatedTopics[i]])
+          
+          // Expand the topic being added
+          setExpandedTopicIndex(i)
+          setExpandedSubtopics(prev => ({ ...prev, [i]: true }))
+        }
+        
+        setGenerationProgress(`✅ Successfully generated ${generatedTopics.length} topics!`)
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Switch to review mode
+        setIsAiGenerated(true)
+        setCurrentTab('manual') // Show in manual view for editing
+        setGenerationProgress('💡 Review and edit your plan below, then create it!')
       }
     } catch (error) {
       console.error('AI generation failed:', error)
       setError('Failed to generate plan. Please try again.')
     } finally {
       setLoading(false)
+      setIsGenerating(false)
     }
   }
 
@@ -132,7 +174,7 @@ export default function NewPlanPage() {
         body: JSON.stringify({
           ...planData,
           topics,
-          isAiGenerated: false,
+          isAiGenerated: isAiGenerated,
         }),
       })
       const data = await res.json()
@@ -367,17 +409,51 @@ export default function NewPlanPage() {
       </Card>
 
       {/* Topics Section */}
-      <Tabs defaultValue="manual" className="w-full">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="manual">
+          <TabsTrigger value="manual" disabled={isGenerating}>
             <Calendar className="mr-2 h-4 w-4" />
-            Add Topics Manually
+            {isAiGenerated ? 'Review & Edit Plan' : 'Add Topics Manually'}
           </TabsTrigger>
-          <TabsTrigger value="ai">
+          <TabsTrigger value="ai" disabled={isGenerating || isAiGenerated}>
             <Sparkles className="mr-2 h-4 w-4" />
             Generate with AI
           </TabsTrigger>
         </TabsList>
+
+        {/* Generation Progress Indicator */}
+        {isGenerating && (
+          <Card className="mt-4 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                <div className="flex-1">
+                  <p className="font-semibold text-purple-900 dark:text-purple-100">{generationProgress}</p>
+                  <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                    Please wait while AI creates your personalized study plan...
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI Generated Banner */}
+        {isAiGenerated && !isGenerating && topics.length > 0 && (
+          <Card className="mt-4 border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="flex-1">
+                  <p className="font-semibold text-green-900 dark:text-green-100">AI Plan Generated Successfully! ✨</p>
+                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                    {generationProgress} You can edit any topic, subtopic, or priority below.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <TabsContent value="manual" className="space-y-4">
           <Card>
@@ -419,7 +495,7 @@ export default function NewPlanPage() {
                         isExpanded 
                           ? 'shadow-xl border-purple-400 dark:border-purple-600 ring-2 ring-purple-200 dark:ring-purple-900' 
                           : 'hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700'
-                      }`}
+                      } ${isGenerating && topicIndex === topics.length - 1 ? 'animate-fadeIn' : ''}`}
                     >
                       {/* Collapsed Header */}
                       {!isExpanded && (
@@ -435,7 +511,7 @@ export default function NewPlanPage() {
                               </h3>
                               <div className="flex items-center gap-3 mt-1">
                                 <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">
-                                  {topic.estimatedHours.toFixed(1)}h • {topic.subtopics.length} subtopic{topic.subtopics.length !== 1 ? 's' : ''}
+                                  {(topic.estimatedHours || 0).toFixed(1)}h • {topic.subtopics.length} subtopic{topic.subtopics.length !== 1 ? 's' : ''}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${
                                   hasInvalidSubtopics 
@@ -730,27 +806,60 @@ export default function NewPlanPage() {
                   className="mt-2"
                 />
               </div>
-              <Button onClick={handleAIGenerate} disabled={loading || !aiPrompt}>
+              <Button onClick={handleAIGenerate} disabled={loading || !aiPrompt || isGenerating}>
                 <Sparkles className="mr-2 h-4 w-4" />
                 {loading ? 'Generating...' : 'Generate Smart Plan'}
               </Button>
+              {topics.length > 0 && !isAiGenerated && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  💡 Tip: AI generation will replace your current topics
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* Submit Buttons */}
-      <Card>
+      <Card className={isAiGenerated && topics.length > 0 ? 'border-2 border-purple-500 shadow-lg' : ''}>
         <CardContent className="pt-6">
+          {isAiGenerated && topics.length > 0 && (
+            <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
+              <p className="text-sm font-semibold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Your AI-generated plan is ready!
+              </p>
+              <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+                Review the topics and subtopics above. Make any changes you need, then click "Create Plan" to save it.
+              </p>
+            </div>
+          )}
           <div className="flex gap-4">
             <Button 
               onClick={handleSubmit} 
               disabled={loading || !planData.title || !planData.startDate || topics.length === 0}
               size="lg"
+              className={isAiGenerated && topics.length > 0 ? 'animate-pulse' : ''}
             >
-              {loading ? 'Creating...' : 'Create Plan'}
+              {loading ? 'Creating...' : isAiGenerated ? '✨ Create AI Plan' : 'Create Plan'}
             </Button>
-            <Button variant="outline" onClick={() => router.back()} size="lg">
+            {isAiGenerated && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsAiGenerated(false)
+                  setTopics([])
+                  setCurrentTab('ai')
+                  setGenerationProgress('')
+                }} 
+                size="lg"
+                disabled={loading}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Start Over
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => router.back()} size="lg" disabled={loading}>
               Cancel
             </Button>
           </div>
