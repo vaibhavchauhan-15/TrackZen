@@ -32,16 +32,49 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { status } = body
+    const { status, scheduledDate, title, estimatedHours, priority, notes } = body
 
-    if (!status || !['not_started', 'in_progress', 'completed'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    // Build update object
+    const updateData: any = {}
+    
+    if (status !== undefined) {
+      if (!['not_started', 'in_progress', 'completed'].includes(status)) {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+      }
+      updateData.status = status
+    }
+    
+    if (scheduledDate !== undefined) {
+      updateData.scheduledDate = scheduledDate
+    }
+    
+    if (title !== undefined) {
+      updateData.title = title
+    }
+    
+    if (estimatedHours !== undefined) {
+      updateData.estimatedHours = estimatedHours
+    }
+    
+    if (priority !== undefined) {
+      if (!['high', 'medium', 'low'].includes(priority)) {
+        return NextResponse.json({ error: 'Invalid priority' }, { status: 400 })
+      }
+      updateData.priority = priority
+    }
+    
+    if (notes !== undefined) {
+      updateData.notes = notes
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
     }
 
     // Update topic
     const [updatedTopic] = await db
       .update(topicsTable)
-      .set({ status })
+      .set(updateData)
       .where(and(eq(topicsTable.id, params.topicId), eq(topicsTable.planId, params.planId)))
       .returning()
 

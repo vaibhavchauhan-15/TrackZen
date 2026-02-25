@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Brain, Calendar, TrendingUp, Zap, Target, Flame } from 'lucide-react'
 
@@ -9,8 +10,13 @@ export default function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-bg-base/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <Flame className="h-8 w-8 text-accent-purple" />
-            <span className="text-2xl font-bold text-text-primary">TrackZen</span>
+            <Image 
+              src="/TrackZenTrans_logo.png" 
+              alt="TrackZen Logo" 
+              width={160} 
+              height={36}
+              className="object-contain"
+            />
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-text-secondary hover:text-text-primary transition-colors">

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { motion, AnimatePresence } from 'framer-motion'
+import { TimelineCalendar } from '@/components/planner/timeline-calendar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +42,8 @@ interface Topic {
   title: string
   estimatedHours: number
   status: 'not_started' | 'in_progress' | 'completed'
+  priority: 'high' | 'medium' | 'low'
+  scheduledDate: string | null
   subtopics?: Topic[]
 }
 
@@ -497,6 +500,22 @@ export default function PlanDetailPage() {
               </Card>
             </motion.div>
           )}
+
+          {/* Timeline Calendar */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65, duration: 0.4 }}
+          >
+            <TimelineCalendar
+              startDate={plan.startDate}
+              endDate={plan.endDate}
+              topics={plan.topics}
+              planId={planId}
+              dailyHours={plan.dailyHours}
+              onTopicsUpdate={fetchPlan}
+            />
+          </motion.div>
 
           {/* Quick Actions */}
           <motion.div

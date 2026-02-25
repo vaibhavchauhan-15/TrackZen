@@ -5,6 +5,25 @@ import { db } from '@/lib/db'
 import { plans, users, topics as topicsTable } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
+// Helper function to convert priority to enum value
+function normalizePriority(priority: any): 'high' | 'medium' | 'low' {
+  if (!priority) return 'medium'
+  
+  // If it's already a valid enum value
+  if (priority === 'high' || priority === 'medium' || priority === 'low') {
+    return priority
+  }
+  
+  // Convert numeric values to enum (1-5 scale or 1-3 scale)
+  const numPriority = typeof priority === 'string' ? parseInt(priority) : priority
+  if (numPriority === 1) return 'high'
+  if (numPriority === 2) return 'medium'
+  if (numPriority >= 3) return 'low'  // 3, 4, 5 all map to low
+  
+  // Default fallback
+  return 'medium'
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -74,6 +93,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'At least one topic is required' }, { status: 400 })
     }
 
+    // Validate each topic has subtopics with valid hours
+    for (let i = 0; i < topicsList.length; i++) {
+      const topic = topicsList[i]
+      if (!topic.subtopics || topic.subtopics.length === 0) {
+        return NextResponse.json({ 
+          error: `Topic "${topic.title || `Topic ${i + 1}`}" must have at least one subtopic` 
+        }, { status: 400 })
+      }
+      
+      // Validate subtopic hours
+      for (let j = 0; j < topic.subtopics.length; j++) {
+        const subtopic = topic.subtopics[j]
+        if (!subtopic.estimatedHours || subtopic.estimatedHours <= 0) {
+          return NextResponse.json({ 
+            error: `Subtopic "${subtopic.title || `Subtopic ${j + 1}`}" must have hours greater than 0` 
+          }, { status: 400 })
+        }
+      }
+    }
+
     // Calculate total estimated hours (subtopics are parts of topics, not additional)
     const totalEstimatedHours = topicsList.reduce(
       (sum: number, topic: any) => {
@@ -110,7 +149,7 @@ export async function POST(req: NextRequest) {
           planId: newPlan.id,
           title: topic.title,
           estimatedHours: topic.estimatedHours || 0,
-          priority: topic.priority || 3,
+          priority: normalizePriority(topic.priority),
           weightage: topic.weightage || null,
           orderIndex: i,
           status: 'not_started',
@@ -125,7 +164,7 @@ export async function POST(req: NextRequest) {
               parentId: createdTopic.id,
               title: subtopic.title,
               estimatedHours: subtopic.estimatedHours || 0,
-              priority: subtopic.priority || 3,
+              priority: normalizePriority(subtopic.priority),
               weightage: null,
               orderIndex: j,
               status: 'not_started',

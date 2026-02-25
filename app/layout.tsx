@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   description:
     'Achieve your goals with AI-assisted study planning, habit tracking, and streak-based motivation. Perfect for students and professionals.',
   keywords: 'study planner, habit tracker, AI planning, productivity, exam preparation',
+  icons: {
+    icon: '/TrackZen_sign.png',
+    apple: '/TrackZen_sign.png',
+  },
 }
 
 export default async function RootLayout({

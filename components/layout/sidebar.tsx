@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Calendar, Target, BarChart3, Settings, Flame } from 'lucide-react'
+import { LayoutDashboard, Calendar, Target, BarChart3, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const navigation = [
@@ -21,8 +22,13 @@ export function Sidebar() {
     <aside className="flex w-64 flex-col border-r border-border bg-bg-surface">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-        <Flame className="h-8 w-8 text-accent-purple" />
-        <span className="text-xl font-bold text-text-primary">TrackZen</span>
+        <Image 
+          src="/TrackZenTrans_logo.png" 
+          alt="TrackZen Logo" 
+          width={140} 
+          height={32}
+          className="object-contain"
+        />
       </div>
 
       {/* Navigation */}
