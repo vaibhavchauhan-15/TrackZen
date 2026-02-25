@@ -11,56 +11,57 @@ import { TrendingUp, Calendar, Target, Flame } from 'lucide-react'
 
 export default function AnalyticsPage() {
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div>
-        <h1 className="text-3xl font-bold text-text-primary">Analytics</h1>
-        <p className="mt-2 text-text-secondary">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">Analytics</h1>
+        <p className="mt-1 sm:mt-2 text-sm sm:text-base text-text-secondary">
           Track your progress and gain insights into your productivity
         </p>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Overview
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">
+            <TrendingUp className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Overview</span>
+            <span className="sm:hidden">Stats</span>
           </TabsTrigger>
-          <TabsTrigger value="study">
-            <Calendar className="mr-2 h-4 w-4" />
-            Study
+          <TabsTrigger value="study" className="text-xs sm:text-sm">
+            <Calendar className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span>Study</span>
           </TabsTrigger>
-          <TabsTrigger value="habits">
-            <Target className="mr-2 h-4 w-4" />
-            Habits
+          <TabsTrigger value="habits" className="text-xs sm:text-sm">
+            <Target className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span>Habits</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6 animate-in fade-in duration-200">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
+          <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-4">
             <Card className="transition-transform hover:-translate-y-1 duration-200">
-              <CardHeader>
-                <CardDescription>Total Study Hours</CardDescription>
-                <CardTitle className="text-3xl">127h</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardDescription className="text-xs sm:text-sm">Total Study Hours</CardDescription>
+                <CardTitle className="text-2xl sm:text-3xl">127h</CardTitle>
               </CardHeader>
             </Card>
             <Card className="transition-transform hover:-translate-y-1 duration-200">
-              <CardHeader>
-                <CardDescription>Active Plans</CardDescription>
-                <CardTitle className="text-3xl">3</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardDescription className="text-xs sm:text-sm">Active Plans</CardDescription>
+                <CardTitle className="text-2xl sm:text-3xl">3</CardTitle>
               </CardHeader>
             </Card>
             <Card className="transition-transform hover:-translate-y-1 duration-200">
-              <CardHeader>
-                <CardDescription>Habits Completed</CardDescription>
-                <CardTitle className="text-3xl">89%</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardDescription className="text-xs sm:text-sm">Habits Completed</CardDescription>
+                <CardTitle className="text-2xl sm:text-3xl">89%</CardTitle>
               </CardHeader>
             </Card>
             <Card className="transition-transform hover:-translate-y-1 duration-200">
-              <CardHeader>
-                <CardDescription>Current Streak</CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardDescription className="text-xs sm:text-sm">Current Streak</CardDescription>
                 <div className="flex items-center gap-2">
-                  <Flame className="h-8 w-8 text-accent-orange" />
-                  <span className="text-3xl font-bold">15</span>
+                  <Flame className="h-6 w-6 sm:h-8 sm:w-8 text-accent-orange" />
+                  <span className="text-2xl sm:text-3xl font-bold">15</span>
                 </div>
               </CardHeader>
             </Card>
@@ -68,11 +69,11 @@ export default function AnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Weekly Progress</CardTitle>
-              <CardDescription>Your study hours over the past week</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Weekly Progress</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Your study hours over the past week</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-end justify-between gap-2">
+              <div className="h-48 sm:h-64 flex items-end justify-between gap-1 sm:gap-2">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
                   const height = Math.random() * 100
                   return (
@@ -93,26 +94,26 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="study" className="space-y-6 animate-in fade-in duration-200">
+        <TabsContent value="study" className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
           <Card>
             <CardHeader>
-              <CardTitle>Study Analytics</CardTitle>
-              <CardDescription>Detailed insights into your study patterns</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Study Analytics</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Detailed insights into your study patterns</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-text-secondary">Study analytics coming soon...</p>
+              <p className="text-sm sm:text-base text-text-secondary">Study analytics coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="habits" className="space-y-6 animate-in fade-in duration-200">
+        <TabsContent value="habits" className="space-y-4 sm:space-y-6 animate-in fade-in duration-200">
           <Card>
             <CardHeader>
-              <CardTitle>Habit Analytics</CardTitle>
-              <CardDescription>Track your habit completion and streaks</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Habit Analytics</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Track your habit completion and streaks</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-text-secondary">Habit analytics coming soon...</p>
+              <p className="text-sm sm:text-base text-text-secondary">Habit analytics coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>

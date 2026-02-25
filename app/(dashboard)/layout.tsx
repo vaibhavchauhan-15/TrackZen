@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -19,6 +20,7 @@ export default function DashboardLayout({
       redirect('/login')
     },
   })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   if (status === 'loading') {
     return (
@@ -34,10 +36,10 @@ export default function DashboardLayout({
   return (
     <DashboardProvider>
       <div className="flex h-screen overflow-hidden bg-bg-base">
-        <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <TopBar />
-          <main className="flex-1 overflow-y-auto p-6">
+          <TopBar onMenuClick={() => setSidebarOpen(true)} />
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
             <PageTransition>{children}</PageTransition>
           </main>
         </div>

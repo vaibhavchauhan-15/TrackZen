@@ -37,13 +37,13 @@ export default function DashboardPage() {
   const userName = user?.name?.split(' ')[0] || 'there'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Welcome Section */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <h1 className="text-3xl font-bold text-text-primary">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
           Welcome back, {userName}! 👋
         </h1>
-        <p className="mt-2 text-text-secondary">
+        <p className="mt-1 sm:mt-2 text-sm sm:text-base text-text-secondary">
           Here's your productivity overview for today
         </p>
       </div>
@@ -52,7 +52,7 @@ export default function DashboardPage() {
       <StreakBanner streak={summary.streak} />
 
       {/* Quick Stats */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<Clock className="h-6 w-6" />}
           label="Study Hours This Week"
@@ -81,15 +81,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Today's Focus */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <TodaysFocus tasks={summary.todayTasks} />
           <ActivePlans plans={summary.activePlans} />
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <HabitRings habits={summary.todayHabits} />
           <QuickActions />
         </div>
@@ -121,15 +121,15 @@ function StreakBanner({ streak }: { streak: number }) {
     <div
       className={`animate-in fade-in slide-in-from-bottom-2 duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r ${getStreakColor(
         streak
-      )} p-6 text-white`}
+      )} p-4 sm:p-6 text-white`}
     >
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium opacity-90">{getStreakTitle(streak)}</p>
-          <h2 className="mt-1 text-4xl font-bold">{streak} Day Streak</h2>
+          <p className="text-xs sm:text-sm font-medium opacity-90">{getStreakTitle(streak)}</p>
+          <h2 className="mt-1 text-2xl sm:text-4xl font-bold">{streak} Day Streak</h2>
         </div>
         <div className="animate-pulse">
-          <Flame className="h-16 w-16" />
+          <Flame className="h-12 w-12 sm:h-16 sm:w-16" />
         </div>
       </div>
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -152,18 +152,18 @@ function StatCard({
 }) {
   return (
     <Card className="transition-transform hover:-translate-y-1 duration-200">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex items-center justify-between">
-          <div className={`rounded-lg bg-${color}/10 p-3 text-${color}`}>{icon}</div>
+          <div className={`rounded-lg bg-${color}/10 p-2 sm:p-3 text-${color}`}>{icon}</div>
           {trend && (
-            <Badge variant="secondary" className="text-accent-green">
+            <Badge variant="secondary" className="text-accent-green text-xs">
               {trend}
             </Badge>
           )}
         </div>
-        <div className="mt-4">
-          <p className="text-sm text-text-secondary">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-text-primary">{value}</p>
+        <div className="mt-3 sm:mt-4">
+          <p className="text-xs sm:text-sm text-text-secondary line-clamp-2">{label}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold text-text-primary">{value}</p>
         </div>
       </CardContent>
     </Card>
