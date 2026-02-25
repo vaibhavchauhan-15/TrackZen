@@ -63,13 +63,25 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { title, type, startDate, endDate, dailyHours, color, isAiGenerated, topics } = body
+    const { title, type, startDate, endDate, dailyHours, color, isAiGenerated, topics: topicsList } = body
 
-    // Calculate total estimated hours
-    const totalEstimatedHours = topics?.reduce(
-      (sum: number, topic: any) => sum + (topic.estimatedHours || 0),
+    // Validate required fields
+    if (!title || !type || !startDate) {
+      return NextResponse.json({ error: 'Missing required fields: title, type, or startDate' }, { status: 400 })
+    }
+
+    if (!topicsList || topicsList.length === 0) {
+      return NextResponse.json({ error: 'At least one topic is required' }, { status: 400 })
+    }
+
+    // Calculate total estimated hours (subtopics are parts of topics, not additional)
+    const totalEstimatedHours = topicsList.reduce(
+      (sum: number, topic: any) => {
+        // Always count topic hours - subtopics are just breakdowns
+        return sum + (topic.estimatedHours || 0)
+      },
       0
-    ) || 0
+    )
 
     // Create plan
     const [newPlan] = await db
@@ -88,18 +100,38 @@ export async function POST(req: NextRequest) {
       })
       .returning()
 
-    // Create topics if provided
-    if (topics && topics.length > 0) {
-      for (const topic of topics) {
-        await db.insert(topicsTable).values({
+    // Create topics and subtopics
+    if (topicsList && topicsList.length > 0) {
+      for (let i = 0; i < topicsList.length; i++) {
+        const topic = topicsList[i]
+        
+        // Create parent topic
+        const [createdTopic] = await db.insert(topicsTable).values({
           planId: newPlan.id,
           title: topic.title,
           estimatedHours: topic.estimatedHours || 0,
           priority: topic.priority || 3,
           weightage: topic.weightage || null,
-          orderIndex: topic.orderIndex || 0,
+          orderIndex: i,
           status: 'not_started',
-        })
+        }).returning()
+
+        // Create subtopics if any
+        if (topic.subtopics && topic.subtopics.length > 0) {
+          for (let j = 0; j < topic.subtopics.length; j++) {
+            const subtopic = topic.subtopics[j]
+            await db.insert(topicsTable).values({
+              planId: newPlan.id,
+              parentId: createdTopic.id,
+              title: subtopic.title,
+              estimatedHours: subtopic.estimatedHours || 0,
+              priority: subtopic.priority || 3,
+              weightage: null,
+              orderIndex: j,
+              status: 'not_started',
+            })
+          }
+        }
       }
     }
 

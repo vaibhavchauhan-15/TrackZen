@@ -12,6 +12,12 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Redirect to dashboard after successful sign in
+      if (url.startsWith(baseUrl)) return url
+      else if (url.startsWith('/')) return `${baseUrl}${url}`
+      return `${baseUrl}/dashboard`
+    },
     async signIn({ user, account, profile }) {
       if (account?.provider === 'google') {
         try {

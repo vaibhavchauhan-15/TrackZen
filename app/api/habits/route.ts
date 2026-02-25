@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { habits, users, habitLogs } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, asc } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,11 +17,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Get all habits
+    // Get all habits ordered by priority (1 is highest)
     const userHabits = await db
       .select()
       .from(habits)
       .where(and(eq(habits.userId, user[0].id), eq(habits.isActive, true)))
+      .orderBy(asc(habits.priority))
 
     // Get today's logs
     const today = new Date().toISOString().split('T')[0]
@@ -55,16 +56,19 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { title, category, frequency, targetDays, color, icon } = body
+    const { title, description, category, frequency, targetDays, timeSlot, priority, color, icon } = body
 
     const [newHabit] = await db
       .insert(habits)
       .values({
         userId: user[0].id,
         title,
+        description: description || null,
         category: category || 'Custom',
         frequency: frequency || 'daily',
         targetDays: targetDays || null,
+        timeSlot: timeSlot || null,
+        priority: priority || 3,
         color: color || '#7C3AED',
         icon: icon || 'target',
         isActive: true,

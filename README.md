@@ -169,13 +169,24 @@ trackzen/
 
 ### Deploy to Vercel (Recommended)
 
+This project is optimized for deployment on Vercel. For detailed deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+
+**Quick Deploy:**
+
 1. Push your code to GitHub
 2. Import your repo in [Vercel](https://vercel.com)
-3. Add environment variables in Vercel dashboard
+3. Add environment variables in Vercel dashboard (see [DEPLOYMENT.md](./DEPLOYMENT.md) for full list)
 4. Deploy!
 
-### Environment Variables on Vercel
-Make sure to add all environment variables from `.env.example` in your Vercel project settings.
+The app includes:
+- ✅ Optimized build configuration
+- ✅ vercel.json with environment variable mapping
+- ✅ Middleware for protected routes
+- ✅ API routes optimized for serverless
+
+**Important:** After deployment, update your `NEXTAUTH_URL` and Google OAuth redirect URIs with your production URL.
+
+For troubleshooting and advanced configuration, refer to [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## 📖 Usage Guide
 

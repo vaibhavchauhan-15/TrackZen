@@ -5,30 +5,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Target, Plus, CheckCircle2, Circle, TrendingUp } from 'lucide-react'
+import { Target, Plus, CheckCircle2, Circle, TrendingUp, Clock, Flag } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { HabitDialog } from '@/components/habits/habit-dialog'
 
 export default function HabitsPage() {
   const [habits, setHabits] = useState([])
   const [todayLogs, setTodayLogs] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   useEffect(() => {
-    const fetchHabits = async () => {
-      try {
-        const res = await fetch('/api/habits')
-        const data = await res.json()
-        setHabits(data.habits || [])
-        setTodayLogs(data.todayLogs || {})
-      } catch (error) {
-        console.error('Failed to fetch habits:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchHabits()
   }, [])
+
+  const fetchHabits = async () => {
+    try {
+      const res = await fetch('/api/habits')
+      const data = await res.json()
+      setHabits(data.habits || [])
+      setTodayLogs(data.todayLogs || {})
+    } catch (error) {
+      console.error('Failed to fetch habits:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const toggleHabit = async (habitId: string) => {
     try {
@@ -78,7 +81,7 @@ export default function HabitsPage() {
             Build consistent routines and track your daily habits
           </p>
         </div>
-        <Button size="lg">
+        <Button size="lg" onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-5 w-5" />
           New Habit
         </Button>
@@ -116,7 +119,7 @@ export default function HabitsPage() {
             <p className="text-text-secondary mb-6">
               Create your first habit to start building consistency
             </p>
-            <Button>
+            <Button onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Habit
             </Button>
@@ -139,8 +142,35 @@ export default function HabitsPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-text-primary">{habit.title}</h3>
-                        <p className="text-sm text-text-secondary mt-1">{habit.category}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-text-primary">{habit.title}</h3>
+                          {habit.priority && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs"
+                              style={{ 
+                                borderColor: habit.priority === 1 ? '#ef4444' : 
+                                            habit.priority === 2 ? '#f97316' : '#64748b' 
+                              }}
+                            >
+                              <Flag className="h-3 w-3 mr-1" />
+                              P{habit.priority}
+                            </Badge>
+                          )}
+                        </div>
+                        {habit.description && (
+                          <p className="text-sm text-text-muted mb-2">{habit.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 text-sm text-text-secondary">
+                          <span>{habit.category}</span>
+                          {habit.timeSlot && (
+                            <>
+                              <span>•</span>
+                              <Clock className="h-3 w-3" />
+                              <span>{habit.timeSlot}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <button
                         onClick={() => toggleHabit(habit.id)}
@@ -166,6 +196,13 @@ export default function HabitsPage() {
           })}
         </div>
       )}
+
+      {/* Habit Creation Dialog */}
+      <HabitDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={fetchHabits}
+      />
     </div>
   )
 }
