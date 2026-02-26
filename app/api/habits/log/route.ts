@@ -5,19 +5,10 @@ import { db } from '@/lib/db'
 import { habitLogs, users } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { calculateHabitStreak, calculateGlobalStreak } from '@/lib/streak'
+import { withAuth } from '@/lib/api-helpers'
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
-    if (!user.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
+  return withAuth(async (user) => {
     const body = await req.json()
     const { habitId, status, date, note } = body
 
@@ -28,7 +19,7 @@ export async function POST(req: NextRequest) {
       .where(
         and(
           eq(habitLogs.habitId, habitId),
-          eq(habitLogs.userId, user[0].id),
+          eq(habitLogs.userId, user.id),
           eq(habitLogs.date, date)
         )
       )
@@ -48,7 +39,7 @@ export async function POST(req: NextRequest) {
         .insert(habitLogs)
         .values({
           habitId,
-          userId: user[0].id,
+          userId: user.id,
           date,
           status,
           note: note || null,
@@ -56,13 +47,19 @@ export async function POST(req: NextRequest) {
         .returning()
     }
 
-    // Recalculate streaks
-    await calculateHabitStreak(habitId, user[0].id)
-    await calculateGlobalStreak(user[0].id)
+    // OPTIMIZATION: Only recalculate streaks if status changed to 'done' or from 'done'
+    // This avoids unnecessary calculations on every update
+    const statusChanged = !existingLog[0] || existingLog[0].status !== status
+    const affectsStreak = status === 'done' || (existingLog[0] && existingLog[0].status === 'done')
+    
+    if (statusChanged && affectsStreak) {
+      // Run streak calculations in parallel (don't await - fire and forget for speed)
+      Promise.all([
+        calculateHabitStreak(habitId, user.id),
+        calculateGlobalStreak(user.id)
+      ]).catch(err => console.error('Streak calculation error:', err))
+    }
 
     return NextResponse.json({ success: true, log })
-  } catch (error) {
-    console.error('Error logging habit:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  })
 }

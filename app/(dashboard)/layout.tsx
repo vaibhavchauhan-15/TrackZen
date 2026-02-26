@@ -1,9 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Sidebar } from '@/components/layout/sidebar'
 import { TopBar } from '@/components/layout/topbar'
@@ -14,24 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { data: session, status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      redirect('/login')
-    },
-  })
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  if (status === 'loading') {
-    return (
-      <div className="flex h-screen items-center justify-center bg-bg-base">
-        <div className="text-center">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-text-secondary animate-pulse">Loading...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <DashboardProvider>

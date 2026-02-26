@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkles, Calendar, Plus, Trash2, ChevronRight, ArrowUpCircle, ArrowDownCircle, ChevronDown, Edit2, Check } from 'lucide-react'
+import { useCreatePlan, useGeneratePlan } from '@/lib/hooks/use-swr-api'
 
 interface Subtopic {
   title: string
@@ -33,7 +34,6 @@ interface Topic {
 
 export default function NewPlanPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [aiPrompt, setAiPrompt] = useState('')
   const [planData, setPlanData] = useState({
@@ -47,14 +47,15 @@ export default function NewPlanPage() {
   const [topics, setTopics] = useState<Topic[]>([])
   const [expandedTopicIndex, setExpandedTopicIndex] = useState<number | null>(null)
   const [expandedSubtopics, setExpandedSubtopics] = useState<{ [key: number]: boolean }>({})
-  const [isGenerating, setIsGenerating] = useState(false)
   const [generationProgress, setGenerationProgress] = useState('')
   const [isAiGenerated, setIsAiGenerated] = useState(false)
   const [currentTab, setCurrentTab] = useState('manual')
 
+  // Use SWR mutations for API calls
+  const { trigger: generatePlan, isMutating: isGenerating } = useGeneratePlan()
+  const { trigger: createPlan, isMutating: isCreating } = useCreatePlan()
+
   const handleAIGenerate = async () => {
-    setLoading(true)
-    setIsGenerating(true)
     setError('')
     setTopics([]) // Clear existing topics
     setGenerationProgress('🤖 Connecting to AI...')
@@ -62,17 +63,10 @@ export default function NewPlanPage() {
     try {
       setGenerationProgress('🧠 AI is analyzing your request...')
       
-      const res = await fetch('/api/ai/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt }),
-      })
-      const data = await res.json()
+      const data = await generatePlan({ prompt: aiPrompt }) as any
       
       if (data.error) {
         setError(data.error)
-        setIsGenerating(false)
-        setLoading(false)
         return
       }
       
@@ -122,9 +116,6 @@ export default function NewPlanPage() {
     } catch (error) {
       console.error('AI generation failed:', error)
       setError('Failed to generate plan. Please try again.')
-    } finally {
-      setLoading(false)
-      setIsGenerating(false)
     }
   }
 
@@ -165,19 +156,14 @@ export default function NewPlanPage() {
       }
     }
 
-    setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...planData,
-          topics,
-          isAiGenerated: isAiGenerated,
-        }),
-      })
-      const data = await res.json()
+      const data = await createPlan({
+        ...planData,
+        topics,
+        isAiGenerated: isAiGenerated,
+      }) as any
+      
       if (data.error) {
         setError(data.error)
       } else if (data.plan) {
@@ -186,8 +172,6 @@ export default function NewPlanPage() {
     } catch (error) {
       console.error('Failed to create plan:', error)
       setError('Failed to create plan. Please try again.')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -806,9 +790,9 @@ export default function NewPlanPage() {
                   className="mt-2"
                 />
               </div>
-              <Button onClick={handleAIGenerate} disabled={loading || !aiPrompt || isGenerating}>
+              <Button onClick={handleAIGenerate} disabled={isGenerating || !aiPrompt || isCreating}>
                 <Sparkles className="mr-2 h-4 w-4" />
-                {loading ? 'Generating...' : 'Generate Smart Plan'}
+                {isGenerating ? 'Generating...' : 'Generate Smart Plan'}
               </Button>
               {topics.length > 0 && !isAiGenerated && (
                 <p className="text-xs text-muted-foreground mt-2">
@@ -837,11 +821,11 @@ export default function NewPlanPage() {
           <div className="flex gap-4">
             <Button 
               onClick={handleSubmit} 
-              disabled={loading || !planData.title || !planData.startDate || topics.length === 0}
+              disabled={isCreating || !planData.title || !planData.startDate || topics.length === 0}
               size="lg"
               className={isAiGenerated && topics.length > 0 ? 'animate-pulse' : ''}
             >
-              {loading ? 'Creating...' : isAiGenerated ? '✨ Create AI Plan' : 'Create Plan'}
+              {isCreating ? 'Creating...' : isAiGenerated ? '✨ Create AI Plan' : 'Create Plan'}
             </Button>
             {isAiGenerated && (
               <Button 
@@ -853,13 +837,13 @@ export default function NewPlanPage() {
                   setGenerationProgress('')
                 }} 
                 size="lg"
-                disabled={loading}
+                disabled={isCreating}
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Start Over
               </Button>
             )}
-            <Button variant="outline" onClick={() => router.back()} size="lg" disabled={loading}>
+            <Button variant="outline" onClick={() => router.back()} size="lg" disabled={isCreating || isGenerating}>
               Cancel
             </Button>
           </div>

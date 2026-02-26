@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { CardSkeleton } from '@/components/ui/loading-spinner'
 import { useDashboard } from '@/components/providers/dashboard-provider'
+import { useLogHabit } from '@/lib/hooks/use-swr-api'
 import { Target, Plus, CheckCircle2, Circle, TrendingUp, Clock, Flag } from 'lucide-react'
 import Link from 'next/link'
 
@@ -14,34 +15,29 @@ import Link from 'next/link'
 const HabitDialog = lazy(() => import('@/components/habits/habit-dialog').then(mod => ({ default: mod.HabitDialog })))
 
 export default function HabitsPage() {
-  const { data, loading, updateHabits, refetch } = useDashboard()
+  const { data, loading, refetch } = useDashboard()
   const [dialogOpen, setDialogOpen] = useState(false)
+  
+  // Use SWR mutation for logging habits with optimistic updates
+  const { trigger: logHabit, isMutating } = useLogHabit()
 
   const habits = data?.habits || []
   const todayLogs = data?.todayLogs || {}
 
   const toggleHabit = async (habitId: string) => {
+    const currentStatus = todayLogs[habitId]?.status
+    const newStatus = currentStatus === 'done' ? 'missed' : 'done'
+    
     try {
-      const res = await fetch('/api/habits/log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          habitId,
-          status: todayLogs[habitId]?.status === 'done' ? 'missed' : 'done',
-          date: new Date().toISOString().split('T')[0],
-        }),
+      // Optimistic update will be handled by SWR
+      await logHabit({
+        habitId,
+        status: newStatus,
+        date: new Date().toISOString().split('T')[0],
       })
-      const result = await res.json()
-      if (result.success) {
-        // Update local state
-        const updatedLogs = {
-          ...todayLogs,
-          [habitId]: result.log,
-        }
-        updateHabits(habits, updatedLogs)
-      }
     } catch (error) {
       console.error('Failed to toggle habit:', error)
+      // SWR will automatically rollback on error
     }
   }
 

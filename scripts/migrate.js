@@ -17,7 +17,7 @@ async function migrate() {
     console.log('🔄 Running database migrations...')
     
     // Get all SQL migration files
-    const migrationsDir = join(__dirname, 'drizzle')
+    const migrationsDir = join(__dirname, '..', 'drizzle')
     const migrationFiles = readdirSync(migrationsDir)
       .filter(file => file.endsWith('.sql'))
       .sort() // Sort to ensure migrations run in order

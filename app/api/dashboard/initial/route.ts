@@ -13,7 +13,6 @@ import {
 } from '@/lib/db/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import { calculateGlobalStreak } from '@/lib/streak'
-import { apiCache, CACHE_TTL } from '@/lib/api-cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,17 +22,6 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check cache first
-    const cacheKey = `dashboard-initial-${session.user.email}`
-    const cached = apiCache.get(cacheKey)
-    if (cached) {
-      return NextResponse.json(cached, {
-        headers: {
-          'X-Cache': 'HIT',
-        },
-      })
     }
 
     const user = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
@@ -165,13 +153,9 @@ export async function GET(req: NextRequest) {
       },
     }
 
-    // Cache the response
-    apiCache.set(cacheKey, responseData, CACHE_TTL.DASHBOARD)
-
     return NextResponse.json(responseData, {
       headers: {
-        'X-Cache': 'MISS',
-        'Cache-Control': 'private, max-age=30',
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
       },
     })
   } catch (error) {

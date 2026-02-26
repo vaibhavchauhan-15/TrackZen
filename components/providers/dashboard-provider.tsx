@@ -1,6 +1,8 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, ReactNode } from 'react'
+import { useDashboardData } from '@/lib/hooks/use-swr-api'
+import { mutate } from 'swr'
 
 interface DashboardData {
   user: {
@@ -28,7 +30,7 @@ interface DashboardData {
 interface DashboardContextType {
   data: DashboardData | null
   loading: boolean
-  error: string | null
+  error: any
   refetch: () => Promise<void>
   updatePlans: (plans: any[]) => void
   updateHabits: (habits: any[], logs: Record<string, any>) => void
@@ -37,61 +39,46 @@ interface DashboardContextType {
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined)
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Use SWR for automatic caching, deduplication, and revalidation
+  const { data, error, isLoading, mutate: revalidate } = useDashboardData()
 
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const res = await fetch('/api/dashboard/initial')
-      if (!res.ok) {
-        throw new Error('Failed to fetch dashboard data')
-      }
-      const json = await res.json()
-      setData(json)
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load data')
-    } finally {
-      setLoading(false)
-    }
+  const refetch = async () => {
+    await revalidate()
   }
-
-  useEffect(() => {
-    fetchData()
-  }, [])
 
   const updatePlans = (plans: any[]) => {
     if (data) {
-      setData({
+      const updatedData = {
         ...data,
         plans,
         activePlans: plans.filter((p) => p.status === 'active').slice(0, 3),
-      })
+      }
+      // Optimistic update
+      mutate('/api/dashboard/initial', updatedData, false)
     }
   }
 
   const updateHabits = (habits: any[], logs: Record<string, any>) => {
     if (data) {
       const habitsCompleted = Object.values(logs).filter((log) => log.status === 'done').length
-      setData({
+      const updatedData = {
         ...data,
         habits,
         todayLogs: logs,
         habitsCompleted,
-      })
+      }
+      // Optimistic update
+      mutate('/api/dashboard/initial', updatedData, false)
     }
   }
 
   return (
     <DashboardContext.Provider
       value={{
-        data,
-        loading,
+        data: (data as DashboardData) || null,
+        loading: isLoading,
         error,
-        refetch: fetchData,
+        refetch,
         updatePlans,
         updateHabits,
       }}

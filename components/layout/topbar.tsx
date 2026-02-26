@@ -1,7 +1,7 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
-import { Bell, Search, Flame, Menu } from 'lucide-react'
+import { signOut } from 'next-auth/react'
+import { Flame, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -19,9 +19,9 @@ interface TopBarProps {
 }
 
 export function TopBar({ onMenuClick }: TopBarProps) {
-  const { data: session } = useSession()
   const { data } = useDashboard()
   
+  const user = data?.user
   const streak = data?.streak || 0
   const loading = !data
 
@@ -44,17 +44,13 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         <Menu className="h-6 w-6" />
       </button>
 
-      {/* Search */}
-      <div className="flex flex-1 items-center gap-4">
-        <div className="relative w-full max-w-md hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <input
-            type="text"
-            placeholder="Search plans, habits, topics..."
-            className="h-10 w-full rounded-lg border border-border bg-bg-elevated pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-purple focus:outline-none focus:ring-2 focus:ring-accent-purple/20 transition-all"
-          />
-        </div>
+      {/* App Title - visible on mobile when search is hidden */}
+      <div className="flex-1 sm:hidden">
+        <h1 className="text-lg font-semibold text-text-primary">TrackZen</h1>
       </div>
+
+      {/* Spacer for desktop */}
+      <div className="hidden sm:block flex-1" />
 
       {/* Right Section */}
       <div className="flex items-center gap-2 sm:gap-4">
@@ -67,22 +63,16 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </div>
         )}
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative hidden sm:flex">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent-red" />
-        </Button>
-
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 sm:gap-3 rounded-lg hover:bg-bg-elevated p-1 sm:p-2 transition-colors">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={session?.user?.image || ''} alt={session?.user?.name || ''} />
-                <AvatarFallback>{session?.user?.name?.[0] || 'U'}</AvatarFallback>
+                <AvatarImage src={user?.image || ''} alt={user?.name || ''} />
+                <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div className="hidden text-left md:block">
-                <p className="text-sm font-medium text-text-primary">{session?.user?.name}</p>
+                <p className="text-sm font-medium text-text-primary">{user?.name}</p>
                 <p className="text-xs text-text-muted">View profile</p>
               </div>
             </button>

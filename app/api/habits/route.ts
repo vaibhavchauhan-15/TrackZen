@@ -4,64 +4,43 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { habits, users, habitLogs } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
+import { withAuth, CacheHeaders } from '@/lib/api-helpers'
 
 export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
-    if (!user.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Get all habits ordered by priority (1 is highest)
-    const userHabits = await db
-      .select()
-      .from(habits)
-      .where(and(eq(habits.userId, user[0].id), eq(habits.isActive, true)))
-      .orderBy(asc(habits.priority))
-
-    // Get today's logs
+  return withAuth(async (user) => {
     const today = new Date().toISOString().split('T')[0]
-    const todayLogsData = await db
-      .select()
-      .from(habitLogs)
-      .where(and(eq(habitLogs.userId, user[0].id), eq(habitLogs.date, today)))
+
+    // OPTIMIZATION: Fetch habits and logs in parallel
+    const [userHabits, todayLogsData] = await Promise.all([
+      db
+        .select()
+        .from(habits)
+        .where(and(eq(habits.userId, user.id), eq(habits.isActive, true)))
+        .orderBy(asc(habits.priority)),
+      db
+        .select()
+        .from(habitLogs)
+        .where(and(eq(habitLogs.userId, user.id), eq(habitLogs.date, today)))
+    ])
 
     const todayLogs: Record<string, any> = {}
     todayLogsData.forEach((log) => {
       todayLogs[log.habitId] = log
     })
 
-    return NextResponse.json({ habits: userHabits, todayLogs })
-  } catch (error) {
-    console.error('Error fetching habits:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+    return NextResponse.json({ habits: userHabits, todayLogs }, { headers: CacheHeaders.short })
+  })
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
-    if (!user.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
+  return withAuth(async (user) => {
     const body = await req.json()
     const { title, description, category, frequency, targetDays, timeSlot, priority, color, icon } = body
 
     const [newHabit] = await db
       .insert(habits)
       .values({
-        userId: user[0].id,
+        userId: user.id,
         title,
         description: description || null,
         category: category || 'Custom',
@@ -76,8 +55,5 @@ export async function POST(req: NextRequest) {
       .returning()
 
     return NextResponse.json({ habit: newHabit }, { status: 201 })
-  } catch (error) {
-    console.error('Error creating habit:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  })
 }

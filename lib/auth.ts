@@ -55,12 +55,13 @@ export const authOptions: NextAuthOptions = {
       }
       return true
     },
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, trigger }) {
+      // Only fetch from DB on initial sign-in or when forced
+      if (user || trigger === 'update') {
         const dbUser = await db
           .select()
           .from(users)
-          .where(eq(users.email, user.email!))
+          .where(eq(users.email, user?.email || token.email!))
           .limit(1)
 
         if (dbUser.length > 0) {
@@ -70,6 +71,7 @@ export const authOptions: NextAuthOptions = {
           token.picture = dbUser[0].avatarUrl
         }
       }
+      // Otherwise, token already has the data from previous calls
       return token
     },
     async session({ session, token }) {

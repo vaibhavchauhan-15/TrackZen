@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -84,11 +84,29 @@ export function TimelineCalendar({
   const [isExpanded, setIsExpanded] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
   const hoverTimeoutRef = useState<NodeJS.Timeout | null>(null)[0]
+  const hasDistributedRef = useRef(false)
+  const topicsHashRef = useRef('')
 
-  // Distribute topics across available days if they don't have scheduled dates
+  // Distribute topics only once on initial load if there are unscheduled topics
   useEffect(() => {
-    distributeTopics()
-  }, [topics.length])
+    const unscheduledTopics = getAllTopics().filter(
+      (t) => !t.scheduledDate && t.status !== 'completed'
+    )
+    
+    // Create a hash of unscheduled topic IDs to detect changes
+    const topicsHash = unscheduledTopics.map(t => t.id).sort().join(',')
+    
+    // Only distribute if:
+    // 1. We haven't distributed yet, OR
+    // 2. The set of unscheduled topics has changed
+    if (unscheduledTopics.length > 0 && topicsHash !== topicsHashRef.current) {
+      topicsHashRef.current = topicsHash
+      if (!hasDistributedRef.current) {
+        hasDistributedRef.current = true
+        distributeTopics()
+      }
+    }
+  }, [topics])
 
   const distributeTopics = async () => {
     const unscheduledTopics = getAllTopics().filter((t) => !t.scheduledDate && t.status !== 'completed')
@@ -165,6 +183,7 @@ export function TimelineCalendar({
     if (!confirm('This will reschedule all incomplete topics. Continue?')) return
     
     setIsDistributing(true)
+    hasDistributedRef.current = false // Reset the flag
     
     // First, clear all scheduled dates
     const allTopics = getAllTopics().filter((t) => t.status !== 'completed')
@@ -276,13 +295,15 @@ export function TimelineCalendar({
 
   const updateTopicStatus = async (topicId: string, status: 'not_started' | 'in_progress' | 'completed') => {
     try {
-      const res = await fetch(`/api/plans/${planId}/topics/${topicId}`, {
+      // Use new optimized API endpoint
+      const res = await fetch(`/api/plans/${planId}/topics/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ topicId, status }),
       })
 
       if (res.ok) {
+        // Call onTopicsUpdate to refresh the plan data
         onTopicsUpdate()
       }
     } catch (error) {

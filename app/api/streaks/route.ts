@@ -5,36 +5,24 @@ import { db } from '@/lib/db'
 import { streaks, users } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { calculateGlobalStreak } from '@/lib/streak'
+import { withAuth, CacheHeaders } from '@/lib/api-helpers'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
-    if (!user.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
+  return withAuth(async (user) => {
     // Get or calculate global streak
-    const globalStreak = await calculateGlobalStreak(user[0].id)
+    const globalStreak = await calculateGlobalStreak(user.id)
 
     // Get all streaks
     const userStreaks = await db
       .select()
       .from(streaks)
-      .where(eq(streaks.userId, user[0].id))
+      .where(eq(streaks.userId, user.id))
 
-    return NextResponse.json({
-      globalStreak,
-      streaks: userStreaks,
-    })
-  } catch (error) {
-    console.error('Error fetching streaks:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+    return NextResponse.json(
+      { globalStreak, streaks: userStreaks },
+      { headers: CacheHeaders.short }
+    )
+  })
 }

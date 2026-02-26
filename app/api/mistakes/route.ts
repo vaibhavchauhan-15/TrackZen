@@ -4,21 +4,11 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { mistakeNotebook, users } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
+import { withAuth, ApiErrors, CacheHeaders } from '@/lib/api-helpers'
 
 // GET - Fetch mistakes
 export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const userResult = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
-    if (userResult.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-    const user = userResult[0]
-
+  return withAuth(async (user) => {
     const searchParams = req.nextUrl.searchParams
     const topicId = searchParams.get('topicId')
     const mockTestId = searchParams.get('mockTestId')
@@ -26,18 +16,10 @@ export async function GET(req: NextRequest) {
     const unresolvedOnly = searchParams.get('unresolvedOnly') === 'true'
 
     let conditions = [eq(mistakeNotebook.userId, user.id)]
-    if (topicId) {
-      conditions.push(eq(mistakeNotebook.topicId, topicId))
-    }
-    if (mockTestId) {
-      conditions.push(eq(mistakeNotebook.mockTestId, mockTestId))
-    }
-    if (category) {
-      conditions.push(eq(mistakeNotebook.category, category))
-    }
-    if (unresolvedOnly) {
-      conditions.push(eq(mistakeNotebook.isResolved, false))
-    }
+    if (topicId) conditions.push(eq(mistakeNotebook.topicId, topicId))
+    if (mockTestId) conditions.push(eq(mistakeNotebook.mockTestId, mockTestId))
+    if (category) conditions.push(eq(mistakeNotebook.category, category))
+    if (unresolvedOnly) conditions.push(eq(mistakeNotebook.isResolved, false))
 
     const mistakes = await db
       .select()
@@ -45,40 +27,18 @@ export async function GET(req: NextRequest) {
       .where(and(...conditions))
       .orderBy(desc(mistakeNotebook.createdAt))
 
-    return NextResponse.json(mistakes)
-  } catch (error) {
-    console.error('Error fetching mistakes:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+    return NextResponse.json(mistakes, { headers: CacheHeaders.medium })
+  })
 }
 
 // POST - Add a new mistake
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const userResult = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
-    if (userResult.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-    const user = userResult[0]
-
+  return withAuth(async (user) => {
     const body = await req.json()
-    const { 
-      topicId,
-      mockTestId,
-      question,
-      yourAnswer,
-      correctAnswer,
-      explanation,
-      category
-    } = body
+    const { topicId, mockTestId, question, yourAnswer, correctAnswer, explanation, category } = body
 
     if (!question || !correctAnswer) {
-      return NextResponse.json({ error: 'Question and correct answer are required' }, { status: 400 })
+      return ApiErrors.badRequest('Question and correct answer are required')
     }
 
     const newMistake = await db
@@ -96,10 +56,7 @@ export async function POST(req: NextRequest) {
       .returning()
 
     return NextResponse.json(newMistake[0], { status: 201 })
-  } catch (error) {
-    console.error('Error creating mistake:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  })
 }
 
 // PUT - Update a mistake (mark as resolved, add review)

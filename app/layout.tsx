@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import SessionProvider from '@/components/providers/session-provider'
+import { SWRProvider } from '@/components/providers/swr-provider'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -30,9 +31,11 @@ export default async function RootLayout({
     <html lang="en" className="dark">
       <body className={inter.className}>
         <SessionProvider session={session}>
-          <TooltipProvider delayDuration={300}>
-            {children}
-          </TooltipProvider>
+          <SWRProvider>
+            <TooltipProvider delayDuration={300}>
+              {children}
+            </TooltipProvider>
+          </SWRProvider>
         </SessionProvider>
       </body>
     </html>

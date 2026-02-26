@@ -5,13 +5,15 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, Calendar, Target, BarChart3, Settings, X } from 'lucide-react'
+import { mutate } from 'swr'
+import { fetcher } from '@/lib/swr-config'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Planner', href: '/planner', icon: Calendar },
-  { name: 'Habits', href: '/habits', icon: Target },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, prefetchKey: '/api/dashboard/initial' },
+  { name: 'Planner', href: '/planner', icon: Calendar, prefetchKey: '/api/plans' },
+  { name: 'Habits', href: '/habits', icon: Target, prefetchKey: '/api/habits' },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3, prefetchKey: null }, // Analytics needs planId
+  { name: 'Settings', href: '/settings', icon: Settings, prefetchKey: null },
 ]
 
 interface SidebarProps {
@@ -60,12 +62,22 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <nav className="flex-1 space-y-1 p-4">
           {navigation.map((item) => {
             const isActive = pathname.startsWith(item.href)
+            
+            // Prefetch handler - loads data on hover for instant navigation
+            const handlePrefetch = () => {
+              if (item.prefetchKey) {
+                // Prefetch data asynchronously (fire and forget)
+                mutate(item.prefetchKey, fetcher(item.prefetchKey), { revalidate: false })
+              }
+            }
+            
             return (
               <Link
                 key={item.name}
                 href={item.href}
                 prefetch={true}
                 onClick={onClose}
+                onMouseEnter={handlePrefetch}
                 className={cn(
                   'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
                   isActive
