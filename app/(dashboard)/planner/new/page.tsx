@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sparkles, Calendar, Plus, Trash2, ChevronRight, ArrowUpCircle, ArrowDownCircle, ChevronDown, Edit2, Check } from 'lucide-react'
-import { useCreatePlan, useGeneratePlan } from '@/lib/hooks/use-swr-api'
 
 interface Subtopic {
   title: string
@@ -50,72 +49,50 @@ export default function NewPlanPage() {
   const [generationProgress, setGenerationProgress] = useState('')
   const [isAiGenerated, setIsAiGenerated] = useState(false)
   const [currentTab, setCurrentTab] = useState('manual')
-
-  // Use SWR mutations for API calls
-  const { trigger: generatePlan, isMutating: isGenerating } = useGeneratePlan()
-  const { trigger: createPlan, isMutating: isCreating } = useCreatePlan()
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
 
   const handleAIGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      setError('Please describe what you want to study')
+      return
+    }
+
     setError('')
     setTopics([]) // Clear existing topics
     setGenerationProgress('🤖 Connecting to AI...')
+    setIsGenerating(true)
     
     try {
       setGenerationProgress('🧠 AI is analyzing your request...')
       
-      const data = await generatePlan({ prompt: aiPrompt }) as any
-      
-      if (data.error) {
-        setError(data.error)
-        return
+      const res = await fetch('/api/ai/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to generate plan')
       }
+
+      const data = await res.json()
       
-      if (data.topics) {
-        setGenerationProgress('✨ Generating your study plan...')
-        
-        // Simulate sequential topic generation for better UX
-        const generatedTopics = data.topics.map((t: any) => {
-          const mappedSubtopics = (t.subtopics || []).map((st: any) => ({
-            title: st.title || '',
-            estimatedHours: st.estimatedHours || st.estimated_hours || 0,
-            priority: st.priority || 3
-          }))
-          
-          const totalHours = mappedSubtopics.reduce((sum: number, st: any) => sum + (st.estimatedHours || 0), 0)
-          
-          return {
-            title: t.title || '',
-            estimatedHours: totalHours,
-            priority: t.priority || 3,
-            weightage: t.weightage || 0,
-            subtopics: mappedSubtopics
-          }
-        })
-        
-        // Add topics sequentially with animation
-        for (let i = 0; i < generatedTopics.length; i++) {
-          setGenerationProgress(`📝 Adding topic ${i + 1}/${generatedTopics.length}: ${generatedTopics[i].title}`)
-          
-          await new Promise(resolve => setTimeout(resolve, 300)) // Delay for visual effect
-          
-          setTopics(prev => [...prev, generatedTopics[i]])
-          
-          // Expand the topic being added
-          setExpandedTopicIndex(i)
-          setExpandedSubtopics(prev => ({ ...prev, [i]: true }))
-        }
-        
-        setGenerationProgress(`✅ Successfully generated ${generatedTopics.length} topics!`)
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Switch to review mode
+      if (data.topics && data.topics.length > 0) {
+        setTopics(data.topics)
         setIsAiGenerated(true)
-        setCurrentTab('manual') // Show in manual view for editing
-        setGenerationProgress('💡 Review and edit your plan below, then create it!')
+        setCurrentTab('manual') // Switch to review tab
+        setGenerationProgress(`✨ Generated ${data.topicCount} topics with ${data.subtopicCount} subtopics (${data.totalHours} hours total)`)
+      } else {
+        throw new Error('No topics generated')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI generation failed:', error)
-      setError('Failed to generate plan. Please try again.')
+      setError(error.message || 'Failed to generate plan. Please try again.')
+      setGenerationProgress('')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -157,21 +134,30 @@ export default function NewPlanPage() {
     }
 
     setError('')
+    setIsCreating(true)
     try {
-      const data = await createPlan({
-        ...planData,
-        topics,
-        isAiGenerated: isAiGenerated,
-      }) as any
-      
-      if (data.error) {
-        setError(data.error)
-      } else if (data.plan) {
-        router.push(`/planner`)
+      const res = await fetch('/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ...planData, 
+          topics, 
+          isAiGenerated,
+        }),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to create plan')
       }
-    } catch (error) {
+
+      const data = await res.json()
+      router.push(`/planner/${data.plan.id}`)
+    } catch (error: any) {
       console.error('Failed to create plan:', error)
-      setError('Failed to create plan. Please try again.')
+      setError(error.message || 'Failed to create plan. Please try again.')
+    } finally {
+      setIsCreating(false)
     }
   }
 

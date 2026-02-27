@@ -162,15 +162,9 @@ export function TimelineCalendar({
     // Bulk update all schedules
     try {
       setIsSaving(true)
-      const res = await fetch(`/api/plans/${planId}/topics/bulk-schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schedules }),
-      })
-
-      if (res.ok) {
-        onTopicsUpdate()
-      }
+      // TODO: Replace with your data mutation logic (e.g., server actions)
+      console.log('Bulk schedule topics:', schedules)
+      onTopicsUpdate()
     } catch (error) {
       console.error('Failed to distribute topics:', error)
     } finally {
@@ -190,11 +184,8 @@ export function TimelineCalendar({
     const clearSchedules = allTopics.map((t) => ({ topicId: t.id, scheduledDate: null }))
     
     try {
-      await fetch(`/api/plans/${planId}/topics/bulk-schedule`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ schedules: clearSchedules }),
-      })
+      // TODO: Replace with your data mutation logic (e.g., server actions)
+      console.log('Clear schedules:', clearSchedules)
       
       // Then redistribute
       await distributeTopics()
@@ -279,15 +270,9 @@ export function TimelineCalendar({
 
   const updateTopicDate = async (topicId: string, newDate: string) => {
     try {
-      const res = await fetch(`/api/plans/${planId}/topics/${topicId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduledDate: newDate }),
-      })
-
-      if (res.ok) {
-        onTopicsUpdate()
-      }
+      // TODO: Replace with your data mutation logic (e.g., server actions)
+      console.log('Update topic date:', topicId, newDate)
+      onTopicsUpdate()
     } catch (error) {
       console.error('Failed to update topic date:', error)
     }
@@ -295,17 +280,10 @@ export function TimelineCalendar({
 
   const updateTopicStatus = async (topicId: string, status: 'not_started' | 'in_progress' | 'completed') => {
     try {
-      // Use new optimized API endpoint
-      const res = await fetch(`/api/plans/${planId}/topics/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId, status }),
-      })
-
-      if (res.ok) {
-        // Call onTopicsUpdate to refresh the plan data
-        onTopicsUpdate()
-      }
+      // TODO: Replace with your data mutation logic (e.g., server actions)
+      console.log('Update topic status:', topicId, status)
+      // Call onTopicsUpdate to refresh the plan data
+      onTopicsUpdate()
     } catch (error) {
       console.error('Failed to update topic status:', error)
     }

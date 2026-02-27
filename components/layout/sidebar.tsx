@@ -8,24 +8,18 @@ import {
   LayoutDashboard,
   Calendar,
   Target,
-  BarChart3,
-  Settings,
   Flame,
   LogOut,
 } from 'lucide-react'
-import { mutate } from 'swr'
-import { fetcher } from '@/lib/swr-config'
 import { signOut } from 'next-auth/react'
 import { useDashboard } from '@/components/providers/dashboard-provider'
 import { useState, useCallback, useMemo } from 'react'
 
 /* ── Navigation config ─────────────────────────────── */
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, prefetchKey: '/api/dashboard/initial' },
-  { name: 'Planner',   href: '/planner',   icon: Calendar,        prefetchKey: '/api/plans' },
-  { name: 'Habits',    href: '/habits',    icon: Target,          prefetchKey: '/api/habits' },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3,       prefetchKey: null },
-  { name: 'Settings',  href: '/settings',  icon: Settings,        prefetchKey: null },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Planner',   href: '/planner',   icon: Calendar },
+  { name: 'Habits',    href: '/habits',    icon: Target },
 ] as const
 
 /* ── Streak color helper ───────────────────────────── */
@@ -65,11 +59,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     [pathname],
   )
 
-  /* prefetch on hover */
-  const handlePrefetch = useCallback((key: string | null) => {
-    if (key) mutate(key, fetcher(key), { revalidate: false })
-  }, [])
-
   /* ── Profile initials (fallback only) ── */
   const initials = useMemo(() => {
     if (!user?.name) return 'U'
@@ -97,7 +86,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           'fixed inset-y-0 left-0 z-50 flex flex-col',
           'w-[72px] bg-[#0a0c10]/95 backdrop-blur-xl',
           'border-r border-white/[0.06]',
-          'transition-transform duration-300 ease-[cubic-bezier(.4,0,.2,1)]',
+          'transition-transform duration-300 ease-material',
           'will-change-transform',
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
@@ -135,6 +124,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   height={40}
                   className="h-full w-full object-cover"
                   referrerPolicy="no-referrer"
+                  unoptimized
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-600 to-cyan-500 text-[13px] font-bold text-white select-none">
@@ -187,7 +177,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <nav className="relative mt-3 flex flex-col gap-2 px-3 flex-1">
           {/* Animated pill indicator */}
           <div
-            className="absolute left-3 right-3 h-[48px] rounded-2xl transition-all duration-[350ms] ease-[cubic-bezier(.4,0,.2,1)] will-change-[transform,opacity]"
+            className="absolute left-3 right-3 h-[48px] rounded-2xl transition-all duration-350 ease-material will-change-[transform,opacity]"
             style={{
               top: `${INDICATOR_TOP(hoveredIndex ?? activeIndex)}px`,
               opacity: activeIndex >= 0 || hoveredIndex !== null ? 1 : 0,
@@ -211,7 +201,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 href={item.href}
                 onMouseEnter={() => {
                   setHoveredIndex(index)
-                  handlePrefetch(item.prefetchKey)
                 }}
                 onMouseLeave={() => setHoveredIndex(null)}
                 className={cn(

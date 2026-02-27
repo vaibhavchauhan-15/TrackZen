@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,12 +37,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  usePlannerPage,
-  useUpdateTopicStatus, 
-  useUpdatePlan, 
-  useDeletePlan 
-} from '@/lib/hooks/use-swr-api'
 
 interface Topic {
   id: string
@@ -129,16 +122,64 @@ export default function PlanDetailPage() {
   const [updatingTopics, setUpdatingTopics] = useState<Set<string>>(new Set())
   const [toasts, setToasts] = useState<ToastType[]>([])
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
+  const [pageData, setPageData] = useState<any>(null)
+  const [pageError, setPageError] = useState<any>(null)
+  const [pageLoading, setPageLoading] = useState(true)
 
-  // OPTIMIZATION: Use unified hook - fetches plan + analytics in ONE call
-  const { data: pageData, error: pageError, isLoading: pageLoading } = usePlannerPage(planId)
-  
-  // Use SWR mutations for updates with optimistic updates
-  const { trigger: deletePlanMutation } = useDeletePlan(planId)
-  const { trigger: updatePlanMutation } = useUpdatePlan(planId)
+  // Fetch plan data from API
+  useEffect(() => {
+    const fetchPlan = async () => {
+      setPageLoading(true)
+      try {
+        const res = await fetch(`/api/plans/${planId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        })
 
-  const plan = ((pageData as any)?.plan as Plan) || null
-  const analytics = ((pageData as any)?.analytics as AnalyticsData) || null
+        if (!res.ok) {
+          if (res.status === 404) {
+            setPageError({ message: 'Plan not found' })
+            return
+          }
+          throw new Error('Failed to fetch plan')
+        }
+
+        const data = await res.json()
+        setPageData(data)
+        setPageError(null)
+      } catch (err) {
+        console.error('Plan fetch error:', err)
+        setPageError(err)
+      } finally {
+        setPageLoading(false)
+      }
+    }
+
+    if (planId) {
+      fetchPlan()
+    }
+  }, [planId])
+
+  const refetchPlan = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/plans/${planId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setPageData(data)
+      }
+    } catch (err) {
+      console.error('Plan refetch error:', err)
+    }
+  }, [planId])
+
+  const plan = (pageData?.plan as Plan) || null
+  const analytics = (pageData?.analytics as AnalyticsData) || null
   const loading = pageLoading
   const analyticsLoading = pageLoading
   const analyticsError = pageError
@@ -177,7 +218,7 @@ export default function PlanDetailPage() {
   }, [plan, selectedTopicId])
 
   // Handle errors
-  if (pageError?.message === 'Failed to fetch' || (pageData as any)?.error === 'Plan not found') {
+  if (pageError?.message === 'Failed to fetch' || pageData?.error === 'Plan not found') {
     router.push('/planner')
     return null
   }
@@ -198,60 +239,26 @@ export default function PlanDetailPage() {
     setUpdatingTopics((prev) => new Set(prev).add(topicId))
     
     try {
-      // Use new optimized API endpoint
-      const res = await fetch(`/api/plans/${planId}/topics/status`, {
+      const res = await fetch(`/api/topics/${topicId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId, status }),
+        body: JSON.stringify({ status }),
       })
 
-      if (res.ok) {
-        const data = await res.json()
-        
-        // Optimistic update: only revalidate the unified planner page data
-        const { mutate } = await import('swr')
-        
-        // Update unified cache with new stats without full refetch
-        await mutate(
-          `/api/planner/${planId}/initial`,
-          async (currentData: any) => {
-            if (!currentData?.plan) return currentData
-            
-            return {
-              ...currentData,
-              plan: {
-                ...currentData.plan,
-                completedTopics: data.stats.completedTopics,
-                inProgressTopics: data.stats.inProgressTopics,
-                totalTopics: data.stats.totalTopics,
-                topics: currentData.plan.topics.map((t: any) => 
-                  t.id === topicId 
-                    ? { ...t, status: data.topic.status }
-                    : t.subtopics
-                    ? {
-                        ...t,
-                        subtopics: t.subtopics.map((st: any) =>
-                          st.id === topicId ? { ...st, status: data.topic.status } : st
-                        ),
-                      }
-                    : t
-                ),
-              },
-            }
-          },
-          { revalidate: false }
-        )
-        
-        // Show success toast
-        const statusMessages = {
-          'not_started': 'Topic reset to not started',
-          'in_progress': `Started working on ${topicTitle || 'topic'}`,
-          'completed': `🎉 Completed ${topicTitle || 'topic'}!`
-        }
-        showToast(statusMessages[status as keyof typeof statusMessages] || 'Topic updated', 'success')
-      } else {
-        showToast('Failed to update topic status', 'error')
+      if (!res.ok) {
+        throw new Error('Failed to update topic')
       }
+
+      // Refetch plan data to get updated counts
+      await refetchPlan()
+      
+      // Show success toast
+      const statusMessages = {
+        'not_started': 'Topic reset to not started',
+        'in_progress': `Started working on ${topicTitle || 'topic'}`,
+        'completed': `🎉 Completed ${topicTitle || 'topic'}!`
+      }
+      showToast(statusMessages[status as keyof typeof statusMessages] || 'Topic updated', 'success')
     } catch (error) {
       console.error('Failed to update topic:', error)
       showToast('An error occurred while updating', 'error')
@@ -266,9 +273,21 @@ export default function PlanDetailPage() {
 
   const updatePlanStatus = async (status: string) => {
     try {
-      await updatePlanMutation({ status })
+      const res = await fetch(`/api/plans/${planId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to update plan')
+      }
+
+      await refetchPlan()
+      showToast(`Plan ${status === 'completed' ? 'marked as completed' : status === 'paused' ? 'paused' : 'updated'}`, 'success')
     } catch (error) {
       console.error('Failed to update plan:', error)
+      showToast('Failed to update plan', 'error')
     }
   }
 
@@ -276,7 +295,15 @@ export default function PlanDetailPage() {
     if (!confirm('Are you sure you want to delete this plan?')) return
 
     try {
-      await deletePlanMutation()
+      const res = await fetch(`/api/plans/${planId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to delete plan')
+      }
+
       router.push('/planner')
     } catch (error) {
       console.error('Failed to delete plan:', error)
@@ -615,8 +642,8 @@ export default function PlanDetailPage() {
               planId={planId}
               dailyHours={plan.dailyHours}
               onTopicsUpdate={() => {
-                // Revalidate unified planner page data
-                mutate(`/api/planner/${planId}/initial`)
+                // TODO: Replace with your data refetch logic
+                console.log('Topics updated, need to refetch')
               }}
             />
           </motion.div>

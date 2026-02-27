@@ -30,8 +30,6 @@ export const config = {
     '/dashboard/:path*', 
     '/planner/:path*', 
     '/habits/:path*', 
-    '/analytics/:path*', 
-    '/settings/:path*',
-    '/login'
+    '/login',
   ],
 }

@@ -1,73 +1,77 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { plans, users, topics as topicsTable } from '@/lib/db/schema'
-import { eq, and, sql, inArray } from 'drizzle-orm'
-import { withAuth, ApiErrors, CacheHeaders } from '@/lib/api-helpers'
+import { plans, topics } from '@/lib/db/schema'
+import { eq, and, sql, desc, inArray } from 'drizzle-orm'
 
-// Helper function to convert priority to enum value
-function normalizePriority(priority: any): 'highest' | 'high' | 'medium' | 'low' {
-  if (!priority) return 'medium'
-  
-  // If it's already a valid enum value
-  if (priority === 'highest' || priority === 'high' || priority === 'medium' || priority === 'low') {
-    return priority
-  }
-  
-  // Convert numeric values to enum (1-5 scale)
-  const numPriority = typeof priority === 'string' ? parseInt(priority) : priority
-  if (numPriority === 1) return 'highest'
-  if (numPriority === 2) return 'high'
-  if (numPriority === 3) return 'medium'
-  if (numPriority >= 4) return 'low'  // 4, 5 map to low
-  
-  // Default fallback
-  return 'medium'
-}
+/**
+ * OPTIMIZED Plans API
+ * 
+ * GET: List all plans with topic counts
+ * POST: Create new plan with topics (batch insert)
+ * 
+ * Performance optimizations:
+ * 1. Single query with aggregated topic counts  
+ * 2. Batch insert for topics
+ * 3. Transaction for atomicity
+ * 4. Selective column fetching
+ */
 
-export async function GET(req: NextRequest) {
-  return withAuth(async (user) => {
-    // Get all plans for user
-    const userPlans = await db
-      .select()
-      .from(plans)
-      .where(eq(plans.userId, user.id))
-      .orderBy(plans.createdAt)
+export const dynamic = 'force-dynamic'
 
-    // Early return if no plans
-    if (userPlans.length === 0) {
-      return NextResponse.json({ plans: [] }, { headers: CacheHeaders.medium })
+// GET /api/plans - List all user's plans
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // OPTIMIZATION: Fetch ALL topics in ONE query instead of N queries
-    const allTopics = await db
-      .select({
-        planId: topicsTable.planId,
-        status: topicsTable.status,
-      })
-      .from(topicsTable)
-      .where(
-        inArray(
-          topicsTable.planId,
-          userPlans.map((p) => p.id)
-        )
-      )
+    const userId = session.user.id
 
-    // Build topic counts map in memory (fast!)
-    const topicCounts = new Map<string, { total: number; completed: number }>()
-    allTopics.forEach((topic) => {
-      const current = topicCounts.get(topic.planId) || { total: 0, completed: 0 }
-      current.total++
-      if (topic.status === 'completed') {
-        current.completed++
-      }
-      topicCounts.set(topic.planId, current)
+    // Get plans
+    const userPlans = await db.select({
+      id: plans.id,
+      title: plans.title,
+      type: plans.type,
+      status: plans.status,
+      startDate: plans.startDate,
+      endDate: plans.endDate,
+      dailyHours: plans.dailyHours,
+      totalEstimatedHours: plans.totalEstimatedHours,
+      color: plans.color,
+      isAiGenerated: plans.isAiGenerated,
+      createdAt: plans.createdAt,
     })
+    .from(plans)
+    .where(eq(plans.userId, userId))
+    .orderBy(desc(plans.createdAt))
 
-    // Attach counts to plans
-    const plansWithCounts = userPlans.map((plan) => {
-      const counts = topicCounts.get(plan.id) || { total: 0, completed: 0 }
+    if (userPlans.length === 0) {
+      return NextResponse.json({ plans: [] })
+    }
+
+    // Get topic counts in single query
+    const planIds = userPlans.map(p => p.id)
+    const topicCounts = await db.select({
+      planId: topics.planId,
+      total: sql<number>`COUNT(*)`.as('total'),
+      completed: sql<number>`SUM(CASE WHEN ${topics.status} = 'completed' THEN 1 ELSE 0 END)`.as('completed'),
+    })
+    .from(topics)
+    .where(and(
+      inArray(topics.planId, planIds),
+      sql`${topics.parentId} IS NOT NULL`
+    ))
+    .groupBy(topics.planId)
+
+    // Map counts to plans
+    const countsMap = new Map(topicCounts.map(tc => [tc.planId, { total: tc.total, completed: tc.completed }]))
+
+    const plansWithCounts = userPlans.map(plan => {
+      const counts = countsMap.get(plan.id) || { total: 0, completed: 0 }
       return {
         ...plan,
         totalTopics: counts.total,
@@ -75,56 +79,55 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    return NextResponse.json({ plans: plansWithCounts }, { headers: CacheHeaders.medium })
-  })
+    return NextResponse.json({ plans: plansWithCounts })
+  } catch (error) {
+    console.error('Plans GET error:', error)
+    return NextResponse.json({ error: 'Failed to fetch plans' }, { status: 500 })
+  }
 }
 
-export async function POST(req: NextRequest) {
-  return withAuth(async (user) => {
-    const body = await req.json()
-    const { title, type, startDate, endDate, dailyHours, color, isAiGenerated, topics: topicsList } = body
-
-    // Validate required fields
-    if (!title || !type || !startDate) {
-      return ApiErrors.badRequest('Missing required fields: title, type, or startDate')
+// POST /api/plans - Create new plan with topics
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!topicsList || topicsList.length === 0) {
-      return ApiErrors.badRequest('At least one topic is required')
+    const userId = session.user.id
+    const body = await request.json()
+    
+    const { title, type, startDate, endDate, dailyHours, color, isAiGenerated, topics: inputTopics } = body
+
+    // Validation
+    if (!title?.trim()) {
+      return NextResponse.json({ error: 'Plan title is required' }, { status: 400 })
+    }
+    if (!startDate) {
+      return NextResponse.json({ error: 'Start date is required' }, { status: 400 })
+    }
+    if (!inputTopics || inputTopics.length === 0) {
+      return NextResponse.json({ error: 'At least one topic is required' }, { status: 400 })
     }
 
-    // Validate each topic has subtopics with valid hours
-    for (let i = 0; i < topicsList.length; i++) {
-      const topic = topicsList[i]
-      if (!topic.subtopics || topic.subtopics.length === 0) {
-        return ApiErrors.badRequest(`Topic "${topic.title || `Topic ${i + 1}`}" must have at least one subtopic`)
+    // Calculate total estimated hours from topics
+    let totalEstimatedHours = 0
+    inputTopics.forEach((topic: any) => {
+      if (topic.subtopics && topic.subtopics.length > 0) {
+        topic.subtopics.forEach((st: any) => {
+          totalEstimatedHours += st.estimatedHours || 0
+        })
       }
-      
-      // Validate subtopic hours
-      for (let j = 0; j < topic.subtopics.length; j++) {
-        const subtopic = topic.subtopics[j]
-        if (!subtopic.estimatedHours || subtopic.estimatedHours <= 0) {
-          return ApiErrors.badRequest(`Subtopic "${subtopic.title || `Subtopic ${j + 1}`}" must have hours greater than 0`)
-        }
-      }
-    }
+    })
 
-    // Calculate total estimated hours (subtopics are parts of topics, not additional)
-    const totalEstimatedHours = topicsList.reduce(
-      (sum: number, topic: any) => {
-        // Always count topic hours - subtopics are just breakdowns
-        return sum + (topic.estimatedHours || 0)
-      },
-      0
-    )
-
-    // Create plan
-    const [newPlan] = await db
-      .insert(plans)
-      .values({
-        userId: user.id,
-        title,
-        type,
+    // Create plan and topics in transaction
+    const result = await db.transaction(async (tx) => {
+      // 1. Create plan
+      const [newPlan] = await tx.insert(plans).values({
+        userId,
+        title: title.trim(),
+        type: type || 'custom',
         startDate,
         endDate: endDate || null,
         dailyHours: dailyHours ? parseFloat(dailyHours) : null,
@@ -132,50 +135,93 @@ export async function POST(req: NextRequest) {
         color: color || '#7C3AED',
         isAiGenerated: isAiGenerated || false,
         status: 'active',
-      })
-      .returning()
-
-    // OPTIMIZATION: Prepare all topic inserts for batch operation
-    const topicInserts: any[] = []
-    const subtopicInserts: any[] = []
-
-    for (let i = 0; i < topicsList.length; i++) {
-      const topic = topicsList[i]
-      
-      // Create parent topic
-      const [createdTopic] = await db.insert(topicsTable).values({
-        planId: newPlan.id,
-        title: topic.title,
-        estimatedHours: topic.estimatedHours || 0,
-        priority: normalizePriority(topic.priority),
-        weightage: topic.weightage || null,
-        orderIndex: i,
-        status: 'not_started',
       }).returning()
 
-      // Prepare subtopics if any
-      if (topic.subtopics && topic.subtopics.length > 0) {
-        for (let j = 0; j < topic.subtopics.length; j++) {
-          const subtopic = topic.subtopics[j]
-          subtopicInserts.push({
-            planId: newPlan.id,
-            parentId: createdTopic.id,
-            title: subtopic.title,
-            estimatedHours: subtopic.estimatedHours || 0,
-            priority: normalizePriority(subtopic.priority),
-            weightage: null,
-            orderIndex: j,
-            status: 'not_started',
+      // 2. Prepare topics and subtopics for batch insert
+      const topicsToInsert: any[] = []
+      const subtopicsToInsert: any[] = []
+      
+      inputTopics.forEach((topic: any, topicIndex: number) => {
+        const topicId = crypto.randomUUID()
+        
+        // Calculate topic hours from subtopics
+        const topicHours = (topic.subtopics || []).reduce((sum: number, st: any) => sum + (st.estimatedHours || 0), 0)
+        
+        topicsToInsert.push({
+          id: topicId,
+          planId: newPlan.id,
+          parentId: null,
+          title: topic.title,
+          estimatedHours: topicHours,
+          priority: mapPriority(topic.priority),
+          weightage: topic.weightage || null,
+          scheduledDate: null,
+          orderIndex: topicIndex,
+          status: 'not_started',
+          notes: null,
+          isWeakArea: false,
+        })
+
+        // Add subtopics
+        if (topic.subtopics && topic.subtopics.length > 0) {
+          topic.subtopics.forEach((subtopic: any, stIndex: number) => {
+            subtopicsToInsert.push({
+              id: crypto.randomUUID(),
+              planId: newPlan.id,
+              parentId: topicId,
+              title: subtopic.title,
+              estimatedHours: subtopic.estimatedHours || 0,
+              priority: mapPriority(subtopic.priority),
+              weightage: null,
+              scheduledDate: null,
+              orderIndex: stIndex,
+              status: 'not_started',
+              notes: null,
+              isWeakArea: false,
+            })
           })
         }
+      })
+
+      // 3. Batch insert topics
+      if (topicsToInsert.length > 0) {
+        await tx.insert(topics).values(topicsToInsert)
       }
-    }
 
-    // Batch insert all subtopics at once (much faster!)
-    if (subtopicInserts.length > 0) {
-      await db.insert(topicsTable).values(subtopicInserts)
-    }
+      // 4. Batch insert subtopics
+      if (subtopicsToInsert.length > 0) {
+        await tx.insert(topics).values(subtopicsToInsert)
+      }
 
-    return NextResponse.json({ plan: newPlan }, { status: 201 })
-  })
+      return {
+        plan: newPlan,
+        topicsCount: topicsToInsert.length,
+        subtopicsCount: subtopicsToInsert.length,
+      }
+    })
+
+    return NextResponse.json({
+      plan: result.plan,
+      message: `Plan created with ${result.topicsCount} topics and ${result.subtopicsCount} subtopics`,
+    }, { status: 201 })
+  } catch (error) {
+    console.error('Plans POST error:', error)
+    return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 })
+  }
+}
+
+// Helper to map numeric priority to enum
+function mapPriority(priority: number | string | undefined): 'highest' | 'high' | 'medium' | 'low' {
+  if (typeof priority === 'string') {
+    if (['highest', 'high', 'medium', 'low'].includes(priority)) {
+      return priority as 'highest' | 'high' | 'medium' | 'low'
+    }
+  }
+  if (typeof priority === 'number') {
+    if (priority === 1) return 'highest'
+    if (priority === 2) return 'high'
+    if (priority === 3) return 'medium'
+    if (priority === 4 || priority === 5) return 'low'
+  }
+  return 'medium'
 }

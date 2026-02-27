@@ -183,6 +183,67 @@
     transform: translateX(0);
   }
 
+  /* ── Cursor-following glow effect ───────────────── */
+  
+  /* Glow card wrapper styles */
+  .glow-card-wrapper {
+    --glow-color: rgba(124, 58, 237, 0.5);
+    --glow-intensity: 0.6;
+    --glow-size: 200px;
+    isolation: isolate;
+  }
+
+  /* The glow border effect - follows cursor */
+  .glow-card-border {
+    border-radius: inherit;
+    z-index: 1;
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+  }
+
+  /* Interactive glow card - applies to all cards automatically */
+  .glow-interactive {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .glow-interactive::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(
+      var(--glow-size, 200px) circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      var(--glow-color, rgba(124, 58, 237, 0.5)),
+      transparent 40%
+    );
+    pointer-events: none;
+    z-index: 1;
+    /* Mask to show only the border glow */
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1.5px;
+  }
+
+  .glow-interactive:hover::before {
+    opacity: 1;
+  }
+
+  /* Ensure content stays above glow */
+  .glow-interactive > * {
+    position: relative;
+    z-index: 2;
+  }
+
   /* Reduce motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -192,6 +253,11 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+    
+    .glow-card-border,
+    .glow-interactive::before {
+      display: none;
     }
   }
 }
