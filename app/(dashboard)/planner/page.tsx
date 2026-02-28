@@ -10,7 +10,6 @@ import {
   PlannerStats,
   PlanList,
   AddPlanFAB,
-  AddPlanButton,
   PlanSummary,
 } from '@/components/planner'
 
@@ -70,14 +69,7 @@ export default function PlannerPage() {
   return (
     <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-24">
       {/* Header with gradient banner */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex-1">
-          <PlannerHeader totalPlans={stats.totalPlans} activePlans={stats.activePlans} />
-        </div>
-        <div className="hidden sm:block">
-          <AddPlanButton className="w-full sm:w-auto" />
-        </div>
-      </div>
+      <PlannerHeader totalPlans={stats.totalPlans} activePlans={stats.activePlans} />
 
       {/* Stats overview */}
       {stats.totalPlans > 0 && (

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { FloatingAddButton } from '@/components/ui/floating-add-button'
 
 const emojiOptions = ['🎯', '🧘', '📖', '💪', '💧', '✍️', '🏃', '🧠', '💤', '🥗', '🎵', '📱', '🌅', '🧹', '🚀']
 const colorOptions = ['#7C3AED', '#10B981', '#EF4444', '#F59E0B', '#06B6D4', '#EC4899', '#F97316', '#14B8A6', '#6366F1', '#3B82F6']
@@ -267,15 +268,5 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
 }
 
 export function AddHabitFAB({ onClick }: { onClick: () => void }) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-12 h-12 sm:w-14 sm:h-14 bg-accent-purple text-white rounded-2xl flex items-center justify-center shadow-lg z-40 hover:bg-accent-purple/90 transition-colors"
-      style={{ boxShadow: '0 0 20px rgba(124, 58, 237, 0.3)' }}
-    >
-      <Plus size={22} className="sm:w-6 sm:h-6" />
-    </motion.button>
-  )
+  return <FloatingAddButton onClick={onClick} title="Add New Habit" />
 }

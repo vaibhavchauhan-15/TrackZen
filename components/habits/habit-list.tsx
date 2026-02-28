@@ -1,10 +1,11 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { MoreHorizontal, Check, Target, Clock, Flag } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { MoreHorizontal, Target, Clock, Flag } from 'lucide-react'
+import { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { AnimatedCheckbox } from '@/components/ui/animated-checkbox'
 import { Habit, HabitLog } from './types'
 
 const priorityColors: Record<number, string> = {
@@ -26,7 +27,6 @@ interface HabitCardProps {
 }
 
 function HabitCard({ habit, logs, onToggle }: HabitCardProps) {
-  const [checked, setChecked] = useState(false)
   const today = new Date().toISOString().split('T')[0]
 
   const { isCompleted, last7Days, habitLogs } = useMemo(() => {
@@ -41,8 +41,6 @@ function HabitCard({ habit, logs, onToggle }: HabitCardProps) {
   }, [logs, habit.id, today])
 
   const handleToggle = () => {
-    setChecked(true)
-    setTimeout(() => setChecked(false), 400)
     onToggle(habit.id)
   }
 
@@ -56,24 +54,12 @@ function HabitCard({ habit, logs, onToggle }: HabitCardProps) {
       <Card className="bg-bg-surface border-bg-elevated hover:shadow-lg transition-all">
         <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
           {/* Checkbox */}
-          <button
-            onClick={handleToggle}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg border-2 flex items-center justify-center transition-all duration-300 flex-shrink-0 ${
-              isCompleted
-                ? 'bg-accent-green border-accent-green'
-                : 'border-text-muted/30 hover:border-accent-purple'
-            } ${checked ? 'scale-95' : ''}`}
-          >
-            {isCompleted && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              >
-                <Check size={14} className="sm:w-4 sm:h-4 text-white" />
-              </motion.div>
-            )}
-          </button>
+          <AnimatedCheckbox
+            checked={isCompleted}
+            onChange={handleToggle}
+            variant="green"
+            className="flex-shrink-0"
+          />
 
           {/* Icon */}
           <div

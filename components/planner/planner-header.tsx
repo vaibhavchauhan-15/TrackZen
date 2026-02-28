@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Sparkles, BookOpen } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { AnimatedAddButton } from '@/components/ui/animated-add-button'
 
 const getGreeting = () => {
   const hour = new Date().getHours()
@@ -19,19 +20,19 @@ interface PlannerHeaderProps {
 export function PlannerHeader({ totalPlans, activePlans }: PlannerHeaderProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
     >
-      <Card className="relative overflow-hidden border-accent-purple/20 bg-gradient-to-br from-accent-purple/15 via-bg-surface to-bg-surface">
-        <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 bg-accent-purple/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-accent-cyan/5 rounded-full blur-2xl" />
+      <Card className="relative overflow-hidden border-accent-purple/20 bg-gradient-to-br from-accent-purple/10 via-bg-surface to-bg-surface">
+        <div className="absolute -top-4 -right-4 w-20 h-2 bg-accent-purple/5 rounded-full blur-2xl" />
+        <div className="absolute -bottom-4 -left-4 w-20 h-2 bg-accent-cyan/5 rounded-full blur-xl" />
         
-        <CardContent className="p-4 sm:p-6 relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardContent className="px-3 py-2 sm:px-4 sm:py-2.5 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <div>
               <motion.div
-                className="flex items-center gap-2 mb-1"
+                className="flex items-center gap-1.5"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
@@ -40,15 +41,15 @@ export function PlannerHeader({ totalPlans, activePlans }: PlannerHeaderProps) {
                   animate={{ rotate: [0, 15, -15, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-accent-purple" />
+                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-accent-purple" />
                 </motion.div>
-                <span className="text-[10px] sm:text-xs font-medium text-accent-purple uppercase tracking-wider">
+                <span className="text-[9px] sm:text-[10px] font-medium text-accent-purple uppercase tracking-wider">
                   Study Planner
                 </span>
               </motion.div>
               
               <motion.h1
-                className="text-xl sm:text-2xl font-bold text-text-primary"
+                className="text-base sm:text-lg font-bold text-text-primary leading-tight"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -57,7 +58,7 @@ export function PlannerHeader({ totalPlans, activePlans }: PlannerHeaderProps) {
               </motion.h1>
               
               <motion.p
-                className="mt-1 text-xs sm:text-sm text-text-secondary"
+                className="text-[10px] sm:text-xs text-text-secondary leading-snug"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -72,15 +73,10 @@ export function PlannerHeader({ totalPlans, activePlans }: PlannerHeaderProps) {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
-              className="hidden sm:flex"
+              className="flex items-center gap-3"
             >
-              <motion.div
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                className="w-16 h-16 rounded-xl bg-accent-purple/10 flex items-center justify-center"
-              >
-                <BookOpen className="w-8 h-8 text-accent-purple" />
-              </motion.div>
+              <AnimatedAddButton href="/planner/new" text="New Plan" size="sm" />
+              
             </motion.div>
           </div>
         </CardContent>

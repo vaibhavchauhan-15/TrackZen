@@ -105,13 +105,13 @@ export async function PATCH(request: Request, { params }: Params) {
         .where(eq(topics.id, topicId))
     }
 
-    // Fetch updated topic
-    const [updatedTopic] = await db.select()
-      .from(topics)
-      .where(eq(topics.id, topicId))
-      .limit(1)
-
-    return NextResponse.json({ topic: updatedTopic })
+    // Return success immediately without fetching updated topic
+    // Client uses optimistic updates, no need to return updated data
+    return NextResponse.json({ 
+      success: true,
+      topicId,
+      status: updateData.status 
+    })
   } catch (error) {
     console.error('Topic PATCH error:', error)
     return NextResponse.json({ error: 'Failed to update topic' }, { status: 500 })

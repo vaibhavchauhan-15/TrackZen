@@ -1,12 +1,13 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, Circle, Target, Plus, ArrowRight } from 'lucide-react'
+import { CheckCircle2, Circle, Target, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlowMotionDiv } from '@/components/ui/glow-motion'
+import { AnimatedAddButton } from '@/components/ui/animated-add-button'
 import { Task } from './types'
 
 interface TodaysFocusProps {
@@ -56,12 +57,9 @@ export function TodaysFocus({ tasks }: TodaysFocusProps) {
                 <Target className="mx-auto h-12 w-12 text-text-muted" />
               </motion.div>
               <p className="mt-4 text-sm text-text-secondary">No tasks scheduled for today</p>
-              <Link href="/planner/new">
-                <Button className="mt-4" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Plan
-                </Button>
-              </Link>
+              <div className="mt-4 flex justify-center">
+                <AnimatedAddButton href="/planner/new" text="Create Plan" size="sm" />
+              </div>
             </motion.div>
           ) : (
             <div className="space-y-2">

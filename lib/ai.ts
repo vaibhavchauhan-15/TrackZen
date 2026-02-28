@@ -9,11 +9,10 @@ export async function generateAIPlan(prompt: string): Promise<any> {
 }
 
 async function generateWithGroq(prompt: string) {
-  // Models in priority order: default -> fallback1 -> fallback2
+  // Optimized models - faster models first for speed
   const models = [
-    'openai/gpt-oss-120b',       // Default: Most comprehensive
-    'llama-3.3-70b-versatile',   // Fallback 1: Versatile and powerful
-    'llama-3.1-8b-instant'       // Fallback 2: Fast and lightweight
+    'llama-3.3-70b-versatile',   // Fast and powerful
+    'llama-3.1-8b-instant'       // Fallback: Very fast
   ]
 
   let lastError: Error | null = null
@@ -24,18 +23,22 @@ async function generateWithGroq(prompt: string) {
     try {
       console.log(`Attempting to generate plan with model: ${model}`)
       
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30s timeout
+      
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
         },
+        signal: controller.signal,
         body: JSON.stringify({
           model: model,
           messages: [
             {
               role: 'system',
-              content: `You are an expert study planner and educational consultant. You have deep knowledge about various exams, courses, and learning paths. Generate comprehensive, realistic, and well-structured study plans.`
+              content: `You are an expert study planner. Generate comprehensive, realistic study plans. Be concise but thorough.`
             },
             {
               role: 'user',
@@ -77,10 +80,12 @@ Guidelines:
 Return ONLY the JSON object, nothing else.`
             }
           ],
-          temperature: 0.7,
-          max_tokens: 4096,
+          temperature: 0.6,
+          max_tokens: 3500,
         }),
       })
+      
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

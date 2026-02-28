@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { AnimatedButton } from '@/components/ui/animated-button'
 import { ArrowRight, Brain, Calendar, TrendingUp, Zap, Target, Flame } from 'lucide-react'
 
 export default function LandingPage() {
@@ -25,9 +26,9 @@ export default function LandingPage() {
             <a href="#how-it-works" className="text-text-secondary hover:text-text-primary transition-colors">
               How It Works
             </a>
-            <Link href="/login">
-              <Button>Get Started</Button>
-            </Link>
+            <AnimatedButton href="/login" size="default">
+              Get Started
+            </AnimatedButton>
           </nav>
           <Link href="/login" className="md:hidden">
             <Button size="sm">Sign In</Button>
@@ -52,15 +53,13 @@ export default function LandingPage() {
             The all-in-one platform combining AI study planning, habit tracking, and streak-based motivation. Perfect for students, professionals, and lifelong learners.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Link href="/login">
-              <Button size="lg" className="w-full sm:w-auto">
-                Start Free Today
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Button size="lg" variant="outline" className="w-full sm:w-auto">
+            <AnimatedButton href="/login" size="lg">
+              Start Free Today
+              <ArrowRight className="h-5 w-5" />
+            </AnimatedButton>
+            <AnimatedButton variant="secondary" size="lg">
               Watch Demo
-            </Button>
+            </AnimatedButton>
           </div>
         </div>
       </section>
@@ -143,12 +142,10 @@ export default function LandingPage() {
           <p className="mb-8 text-lg text-text-secondary">
             Join students and professionals using TrackZen to achieve their goals
           </p>
-          <Link href="/login">
-            <Button size="lg">
-              Get Started for Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
+          <AnimatedButton href="/login" size="lg">
+            Get Started for Free
+            <ArrowRight className="h-5 w-5" />
+          </AnimatedButton>
         </div>
       </section>
 

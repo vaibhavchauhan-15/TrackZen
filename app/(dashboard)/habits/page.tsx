@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardSkeleton } from '@/components/ui/loading-spinner'
 import { useDashboard } from '@/components/providers/dashboard-provider'
+import { revalidateDashboard, revalidateHabits } from '@/lib/hooks/use-swr-api'
 
 // Import new habit components
 import { Habit, HabitLog, FrequencyTab, HabitStats } from '@/components/habits/types'
@@ -99,6 +100,9 @@ export default function HabitsPage() {
         throw new Error(error.error || 'Failed to create habit')
       }
 
+      // Revalidate caches after creating habit
+      revalidateHabits()
+      revalidateDashboard()
       await refetch()
     } catch (error) {
       console.error('Failed to add habit:', error)
@@ -132,7 +136,7 @@ export default function HabitsPage() {
   return (
     <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-24">
       {/* Welcome Banner */}
-      <WelcomeBanner remainingToday={stats.remainingToday} />
+      <WelcomeBanner remainingToday={stats.remainingToday} onAddHabit={() => setModalOpen(true)} />
       
       {/* Stats Cards */}
       <StatsCards stats={stats} />

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,9 +14,6 @@ import {
   Target,
   ChevronDown,
   ChevronRight,
-  CheckCircle2,
-  Circle,
-  PlayCircle,
   Trash2,
   MoreVertical,
   BookOpen,
@@ -37,6 +35,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AnimatedCheckbox } from '@/components/ui/animated-checkbox'
+import { API_KEYS, revalidateDashboard, revalidatePlans } from '@/lib/hooks/use-swr-api'
 
 interface Topic {
   id: string
@@ -119,64 +119,38 @@ export default function PlanDetailPage() {
   const planId = params.planId as string
 
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
-  const [updatingTopics, setUpdatingTopics] = useState<Set<string>>(new Set())
   const [toasts, setToasts] = useState<ToastType[]>([])
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
-  const [pageData, setPageData] = useState<any>(null)
-  const [pageError, setPageError] = useState<any>(null)
-  const [pageLoading, setPageLoading] = useState(true)
 
-  // Fetch plan data from API
-  useEffect(() => {
-    const fetchPlan = async () => {
-      setPageLoading(true)
-      try {
-        const res = await fetch(`/api/plans/${planId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store',
-        })
-
-        if (!res.ok) {
-          if (res.status === 404) {
-            setPageError({ message: 'Plan not found' })
-            return
-          }
-          throw new Error('Failed to fetch plan')
-        }
-
-        const data = await res.json()
-        setPageData(data)
-        setPageError(null)
-      } catch (err) {
-        console.error('Plan fetch error:', err)
-        setPageError(err)
-      } finally {
-        setPageLoading(false)
-      }
-    }
-
-    if (planId) {
-      fetchPlan()
-    }
-  }, [planId])
-
-  const refetchPlan = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/plans/${planId}`, {
+  // Use SWR for plan data fetching with caching
+  const { data: pageData, error: pageError, isLoading: pageLoading, mutate: mutatePlan } = useSWR(
+    planId ? API_KEYS.plan(planId) : null,
+    async (url: string) => {
+      const res = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
       })
 
-      if (res.ok) {
-        const data = await res.json()
-        setPageData(data)
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error('Plan not found')
+        }
+        throw new Error('Failed to fetch plan')
       }
-    } catch (err) {
-      console.error('Plan refetch error:', err)
+
+      return res.json()
+    },
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 60000, // 60s auto-refresh
+      dedupingInterval: 5000,
+      keepPreviousData: true,
     }
-  }, [planId])
+  )
+
+  const refetchPlan = useCallback(async () => {
+    await mutatePlan()
+  }, [mutatePlan])
 
   const plan = (pageData?.plan as Plan) || null
   const analytics = (pageData?.analytics as AnalyticsData) || null
@@ -233,42 +207,60 @@ export default function PlanDetailPage() {
     setExpandedTopics(newExpanded)
   }
 
-  const updateTopicStatus = async (topicId: string, status: string, topicTitle?: string) => {
-    if (!plan) return
+  const updateTopicStatus = async (topicId: string, currentStatus: string, topicTitle?: string) => {
+    if (!plan || !pageData) return
     
-    setUpdatingTopics((prev) => new Set(prev).add(topicId))
+    // Toggle between not_started and completed only
+    const newStatus = currentStatus === 'completed' ? 'not_started' : 'completed'
     
-    try {
-      const res = await fetch(`/api/topics/${topicId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to update topic')
-      }
-
-      // Refetch plan data to get updated counts
-      await refetchPlan()
-      
-      // Show success toast
-      const statusMessages = {
-        'not_started': 'Topic reset to not started',
-        'in_progress': `Started working on ${topicTitle || 'topic'}`,
-        'completed': `🎉 Completed ${topicTitle || 'topic'}!`
-      }
-      showToast(statusMessages[status as keyof typeof statusMessages] || 'Topic updated', 'success')
-    } catch (error) {
-      console.error('Failed to update topic:', error)
-      showToast('An error occurred while updating', 'error')
-    } finally {
-      setUpdatingTopics((prev) => {
-        const newSet = new Set(prev)
-        newSet.delete(topicId)
-        return newSet
+    // Optimistic update - update local state immediately
+    const updateTopicInList = (topics: Topic[]): Topic[] => {
+      return topics.map(topic => {
+        if (topic.id === topicId) {
+          return { ...topic, status: newStatus as 'not_started' | 'in_progress' | 'completed' }
+        }
+        if (topic.subtopics) {
+          return { ...topic, subtopics: updateTopicInList(topic.subtopics) }
+        }
+        return topic
       })
     }
+    
+    // Calculate new counts
+    const isCompleting = newStatus === 'completed'
+    const wasCompleted = currentStatus === 'completed'
+    const countDelta = isCompleting ? 1 : (wasCompleted ? -1 : 0)
+    
+    // Optimistic update using SWR mutate
+    mutatePlan((prev: any) => ({
+      ...prev,
+      plan: {
+        ...prev.plan,
+        topics: updateTopicInList(prev.plan.topics),
+        completedTopics: prev.plan.completedTopics + countDelta,
+      }
+    }), false)
+    
+    // Show toast immediately
+    const toastMessage = newStatus === 'completed' 
+      ? `🎉 Completed ${topicTitle || 'topic'}!`
+      : `Reset ${topicTitle || 'topic'}`
+    showToast(toastMessage, 'success')
+    
+    // Sync with API in background (no await, fire-and-forget)
+    fetch(`/api/topics/${topicId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    }).then(() => {
+      // Revalidate dashboard on success
+      revalidateDashboard()
+    }).catch(error => {
+      console.error('Failed to sync topic status:', error)
+      // Revert on error
+      mutatePlan()
+      showToast('Failed to save - reverting', 'error')
+    })
   }
 
   const updatePlanStatus = async (status: string) => {
@@ -284,6 +276,9 @@ export default function PlanDetailPage() {
       }
 
       await refetchPlan()
+      // Revalidate related caches
+      revalidatePlans()
+      revalidateDashboard()
       showToast(`Plan ${status === 'completed' ? 'marked as completed' : status === 'paused' ? 'paused' : 'updated'}`, 'success')
     } catch (error) {
       console.error('Failed to update plan:', error)
@@ -304,22 +299,16 @@ export default function PlanDetailPage() {
         throw new Error('Failed to delete plan')
       }
 
+      // Revalidate plans cache after deletion
+      revalidatePlans()
+      revalidateDashboard()
       router.push('/planner')
     } catch (error) {
       console.error('Failed to delete plan:', error)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />
-      case 'in_progress':
-        return <PlayCircle className="h-5 w-5 text-blue-500" />
-      default:
-        return <Circle className="h-5 w-5 text-text-muted" />
-    }
-  }
+
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -1098,26 +1087,14 @@ export default function PlanDetailPage() {
                           >
                             {/* Status Indicator */}
                             <div className="flex items-start gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  const nextStatus =
-                                    topic.status === 'not_started'
-                                      ? 'in_progress'
-                                      : topic.status === 'in_progress'
-                                      ? 'completed'
-                                      : 'not_started'
-                                  updateTopicStatus(topic.id, nextStatus, topic.title)
+                              <AnimatedCheckbox
+                                checked={topic.status === 'completed'}
+                                onChange={() => {
+                                  updateTopicStatus(topic.id, topic.status, topic.title)
                                 }}
-                                disabled={updatingTopics.has(topic.id)}
-                                className="transition-transform hover:scale-110 disabled:opacity-50 mt-0.5 flex-shrink-0"
-                              >
-                                {updatingTopics.has(topic.id) ? (
-                                  <div className="h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  getStatusIcon(topic.status)
-                                )}
-                              </button>
+                                variant="green"
+                                className="mt-0.5 flex-shrink-0"
+                              />
 
                               <div className="flex-1 min-w-0">
                                 <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-purple-300' : 'text-text-primary'}`}>
@@ -1214,8 +1191,8 @@ export default function PlanDetailPage() {
                                   </span>
                                 </CardDescription>
                               </div>
-                              <Badge className={getStatusBadgeColor(selectedTopic.status)}>
-                                {selectedTopic.status.replace('_', ' ')}
+                              <Badge className={selectedTopic.status === 'completed' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-500'}>
+                                {selectedTopic.status === 'completed' ? 'completed' : 'pending'}
                               </Badge>
                             </div>
                           </CardHeader>
@@ -1231,32 +1208,19 @@ export default function PlanDetailPage() {
                                   p-3 rounded-lg border transition-all duration-200
                                   ${subtopic.status === 'completed' 
                                     ? 'bg-green-500/10 border-green-500/30' 
-                                    : subtopic.status === 'in_progress'
-                                    ? 'bg-blue-500/10 border-blue-500/30'
                                     : 'border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
                                   }
                                 `}
                               >
                                 <div className="flex items-start gap-3">
-                                  <button
-                                    onClick={() => {
-                                      const nextStatus =
-                                        subtopic.status === 'not_started'
-                                          ? 'in_progress'
-                                          : subtopic.status === 'in_progress'
-                                          ? 'completed'
-                                          : 'not_started'
-                                      updateTopicStatus(subtopic.id, nextStatus, subtopic.title)
+                                  <AnimatedCheckbox
+                                    checked={subtopic.status === 'completed'}
+                                    onChange={() => {
+                                      updateTopicStatus(subtopic.id, subtopic.status, subtopic.title)
                                     }}
-                                    disabled={updatingTopics.has(subtopic.id)}
-                                    className="transition-transform hover:scale-110 disabled:opacity-50 mt-0.5 flex-shrink-0"
-                                  >
-                                    {updatingTopics.has(subtopic.id) ? (
-                                      <div className="h-5 w-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                      getStatusIcon(subtopic.status)
-                                    )}
-                                  </button>
+                                    variant="green"
+                                    className="mt-0.5 flex-shrink-0"
+                                  />
 
                                   <div className="flex-1 min-w-0">
                                     <h5 className={`text-sm font-medium ${
@@ -1271,10 +1235,6 @@ export default function PlanDetailPage() {
                                       </p>
                                     )}
                                   </div>
-
-                                  <Badge variant="outline" className="text-xs flex-shrink-0">
-                                    {subtopic.status.replace('_', ' ')}
-                                  </Badge>
                                 </div>
                               </motion.div>
                             ))}

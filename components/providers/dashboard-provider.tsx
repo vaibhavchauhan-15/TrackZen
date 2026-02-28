@@ -1,6 +1,15 @@
 'use client'
 
-import { createContext, useContext, ReactNode, useState, useEffect, useCallback, useRef } from 'react'
+import { createContext, useContext, ReactNode, useCallback } from 'react'
+import useSWR, { mutate } from 'swr'
+
+// Define API endpoints locally to avoid import issues
+const DASHBOARD_API = '/api/dashboard'
+const HABITS_API = '/api/habits'
+
+// Local revalidation helpers
+const revalidateDashboard = () => mutate(DASHBOARD_API)
+const revalidateHabits = () => mutate(HABITS_API)
 
 interface DashboardData {
   user: {
@@ -38,138 +47,89 @@ interface DashboardContextType {
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined)
 
-// Stale-while-revalidate cache
-const CACHE_KEY = 'dashboard_cache'
-const CACHE_DURATION = 30 * 1000 // 30 seconds
+// Fetcher for dashboard data
+const dashboardFetcher = async (url: string): Promise<DashboardData> => {
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
 
-function getCache(): { data: DashboardData | null; timestamp: number } | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const cached = sessionStorage.getItem(CACHE_KEY)
-    if (cached) {
-      return JSON.parse(cached)
-    }
-  } catch {}
-  return null
-}
+  if (!res.ok) {
+    throw new Error('Failed to fetch dashboard')
+  }
 
-function setCache(data: DashboardData) {
-  if (typeof window === 'undefined') return
-  try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }))
-  } catch {}
+  return res.json()
 }
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<any>(null)
-  const fetchingRef = useRef(false)
-
-  const fetchDashboard = useCallback(async (showLoading = true) => {
-    if (fetchingRef.current) return
-    fetchingRef.current = true
-    
-    if (showLoading) setLoading(true)
-    
-    try {
-      const res = await fetch('/api/dashboard', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch dashboard')
-      }
-
-      const result = await res.json()
-      setData(result)
-      setCache(result)
-      setError(null)
-    } catch (err) {
-      console.error('Dashboard fetch error:', err)
-      setError(err)
-    } finally {
-      setLoading(false)
-      fetchingRef.current = false
+  // Use SWR for data fetching with caching
+  const { data, error, isLoading, mutate: mutateDashboard } = useSWR<DashboardData>(
+    DASHBOARD_API,
+    dashboardFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      refreshInterval: 30000, // 30s auto-refresh
+      dedupingInterval: 5000, // 5s deduplication
+      keepPreviousData: true,
     }
-  }, [])
-
-  // Initial load with SWR pattern
-  useEffect(() => {
-    // Check cache first
-    const cached = getCache()
-    if (cached?.data) {
-      setData(cached.data)
-      setLoading(false)
-      
-      // Revalidate in background if stale
-      if (Date.now() - cached.timestamp > CACHE_DURATION) {
-        fetchDashboard(false)
-      }
-    } else {
-      fetchDashboard(true)
-    }
-  }, [fetchDashboard])
+  )
 
   const refetch = useCallback(async () => {
-    await fetchDashboard(false)
-  }, [fetchDashboard])
+    await mutateDashboard()
+  }, [mutateDashboard])
 
+  // Update plans with optimistic update
   const updatePlans = useCallback((plans: any[]) => {
-    setData(prev => {
-      if (!prev) return prev
-      const updated = {
-        ...prev,
+    mutateDashboard((current) => {
+      if (!current) return current
+      return {
+        ...current,
         plans,
         activePlans: plans.filter((p) => p.status === 'active').slice(0, 3),
       }
-      setCache(updated)
-      return updated
-    })
-  }, [])
+    }, false) // false = don't revalidate, just update cache
+  }, [mutateDashboard])
 
+  // Update habits with optimistic update
   const updateHabits = useCallback((habits: any[], logs: Record<string, any>) => {
-    setData(prev => {
-      if (!prev) return prev
+    mutateDashboard((current) => {
+      if (!current) return current
       const habitsCompleted = Object.values(logs).filter((log) => log.status === 'done').length
-      const updated = {
-        ...prev,
+      return {
+        ...current,
         habits,
         todayLogs: logs,
         habitsCompleted,
         summary: {
-          ...prev.summary,
+          ...current.summary,
           habitsCompleted,
         },
       }
-      setCache(updated)
-      return updated
-    })
-  }, [])
+    }, false)
+  }, [mutateDashboard])
 
-  // Optimistic habit toggle
+  // Optimistic habit toggle with SWR
   const toggleHabit = useCallback(async (habitId: string, date?: string) => {
     const logDate = date || new Date().toISOString().split('T')[0]
     
     // Optimistic update
-    setData(prev => {
-      if (!prev) return prev
-      const currentStatus = prev.todayLogs[habitId]?.status
+    await mutateDashboard((current) => {
+      if (!current) return current
+      const currentStatus = current.todayLogs[habitId]?.status
       const newStatus = currentStatus === 'done' ? 'missed' : 'done'
       const newLogs = {
-        ...prev.todayLogs,
-        [habitId]: { ...prev.todayLogs[habitId], status: newStatus, habitId, date: logDate },
+        ...current.todayLogs,
+        [habitId]: { ...current.todayLogs[habitId], status: newStatus, habitId, date: logDate },
       }
       const habitsCompleted = Object.values(newLogs).filter((log: any) => log.status === 'done').length
       return {
-        ...prev,
+        ...current,
         todayLogs: newLogs,
         habitsCompleted,
-        summary: { ...prev.summary, habitsCompleted },
+        summary: { ...current.summary, habitsCompleted },
       }
-    })
+    }, false)
 
     // Make API call
     try {
@@ -185,37 +145,39 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
       // Update with server response
       const result = await res.json()
-      setData(prev => {
-        if (!prev) return prev
+      mutateDashboard((current) => {
+        if (!current) return current
         const newLogs = {
-          ...prev.todayLogs,
+          ...current.todayLogs,
           [habitId]: result.log,
         }
         const habitsCompleted = Object.values(newLogs).filter((log: any) => log.status === 'done').length
         
         // Update habit streak in habits array
-        const updatedHabits = prev.habits.map(h => 
+        const updatedHabits = current.habits.map(h => 
           h.id === habitId 
             ? { ...h, currentStreak: result.streak.current, longestStreak: result.streak.longest }
             : h
         )
         
-        const updated = {
-          ...prev,
+        return {
+          ...current,
           habits: updatedHabits,
           todayLogs: newLogs,
           habitsCompleted,
-          summary: { ...prev.summary, habitsCompleted },
+          summary: { ...current.summary, habitsCompleted },
         }
-        setCache(updated)
-        return updated
-      })
+      }, false)
+      
+      // Also revalidate habits cache
+      revalidateHabits()
     } catch (err) {
       console.error('Toggle habit error:', err)
-      // Revert on error
-      refetch()
+      // Revert on error - revalidate to get fresh data
+      mutateDashboard()
+      throw err
     }
-  }, [refetch])
+  }, [mutateDashboard])
 
   // Optimistic topic status update
   const updateTopicStatus = useCallback(async (topicId: string, status: string) => {
@@ -230,19 +192,19 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to update topic')
       }
 
-      // Refetch to get updated data
-      await refetch()
+      // Revalidate dashboard to get updated data
+      await mutateDashboard()
     } catch (err) {
       console.error('Update topic error:', err)
       throw err
     }
-  }, [refetch])
+  }, [mutateDashboard])
 
   return (
     <DashboardContext.Provider
       value={{
-        data,
-        loading,
+        data: data || null,
+        loading: isLoading,
         error,
         refetch,
         updatePlans,
