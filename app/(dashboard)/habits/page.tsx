@@ -151,7 +151,7 @@ export default function HabitsPage() {
               variant="ghost" 
               size="sm" 
               onClick={() => setModalOpen(true)}
-              className="text-accent-purple hover:text-accent-purple/80 hover:bg-accent-purple/10 w-fit"
+              className="hidden sm:flex text-accent-purple hover:text-accent-purple/80 hover:bg-accent-purple/10 w-fit"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add Habit

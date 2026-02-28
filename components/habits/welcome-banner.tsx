@@ -50,6 +50,7 @@ export function WelcomeBanner({ remainingToday, onAddHabit }: WelcomeBannerProps
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
+                className="hidden sm:block"
               >
                 <AnimatedAddButton onClick={onAddHabit} text="New Habit" size="sm" />
               </motion.div>

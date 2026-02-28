@@ -73,7 +73,7 @@ export function PlannerHeader({ totalPlans, activePlans }: PlannerHeaderProps) {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
-              className="flex items-center gap-3"
+              className="hidden sm:flex items-center gap-3"
             >
               <AnimatedAddButton href="/planner/new" text="New Plan" size="sm" />
               

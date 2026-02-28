@@ -426,15 +426,15 @@ export default function NewPlanPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 animate-in">
+    <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6 animate-in pb-6">
       {/* Header with animated gradient */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-900/20 via-bg-surface to-blue-900/20 p-6 border border-purple-500/20">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-900/20 via-bg-surface to-blue-900/20 p-4 sm:p-6 border border-purple-500/20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-500/10 via-transparent to-transparent" />
         <div className="relative">
-          <h1 className="text-3xl font-bold text-text-primary bg-gradient-to-r from-purple-400 via-accent-purple to-blue-400 bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary bg-gradient-to-r from-purple-400 via-accent-purple to-blue-400 bg-clip-text text-transparent">
             Create New Plan
           </h1>
-          <p className="mt-2 text-text-secondary">
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-text-secondary">
             Use AI to generate a plan or create one manually
           </p>
         </div>
@@ -538,7 +538,7 @@ export default function NewPlanPage() {
             </div>
 
             {/* Date Fields */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               <div>
                 <Label className="text-sm font-medium flex items-center gap-1">
                   Start Date <span className="text-red-400">*</span>
@@ -653,22 +653,22 @@ export default function NewPlanPage() {
 
       {/* Topics Section */}
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-bg-surface p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 bg-bg-surface p-1 rounded-xl overflow-hidden">
           <TabsTrigger 
             value="manual" 
             disabled={isGenerating}
-            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 rounded-lg transition-all duration-300 group"
+            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 rounded-lg transition-all duration-300 group text-xs sm:text-sm py-2.5 sm:py-2"
           >
-            <Calendar className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform duration-300" />
-            {isAiGenerated ? 'Review & Edit Plan' : 'Add Topics Manually'}
+            <Calendar className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:rotate-12 transition-transform duration-300" />
+            <span className="truncate">{isAiGenerated ? 'Review Plan' : 'Add Topics'}</span>
           </TabsTrigger>
           <TabsTrigger 
             value="ai" 
             disabled={isGenerating || isAiGenerated}
-            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 rounded-lg transition-all duration-300 group"
+            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 rounded-lg transition-all duration-300 group text-xs sm:text-sm py-2.5 sm:py-2"
           >
-            <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse transition-all duration-300" />
-            Generate with AI
+            <Sparkles className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:animate-pulse transition-all duration-300" />
+            <span className="truncate">AI Generate</span>
           </TabsTrigger>
         </TabsList>
 
@@ -717,7 +717,7 @@ export default function NewPlanPage() {
               </div>
               {/* Live stats during streaming */}
               {streamStats.topics > 0 && (
-                <div className="flex items-center gap-3 mt-4 pt-4 border-t border-purple-500/20">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-purple-500/20">
                   <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-300 text-xs animate-countUp">
                     📚 {streamStats.topics} topics
                   </span>
@@ -886,9 +886,9 @@ export default function NewPlanPage() {
                           </Button>
                         </div>
 
-                        <div className="flex items-start gap-3">
-                          <div className="flex-1 grid gap-4 md:grid-cols-2">
-                            <div className="md:col-span-2 flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-start gap-3">
+                          <div className="flex-1 w-full grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                            <div className="sm:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                               <div className="flex-1 group/input">
                                 <Label>Topic Title <span className="text-red-400">*</span></Label>
                                 <Input
@@ -898,8 +898,8 @@ export default function NewPlanPage() {
                                   className="mt-1 transition-all duration-200 focus:ring-2 focus:ring-purple-500/50 hover:border-purple-400/50"
                                 />
                               </div>
-                              <div className="pt-6">
-                                <div className="px-4 py-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-2 border-purple-500/30 shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105 group/hours">
+                              <div className="pt-0 sm:pt-6">
+                                <div className="px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-2 border-purple-500/30 shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105 group/hours">
                                   <div className="text-center">
                                     <div className="text-xs text-purple-400 font-medium mb-0.5">Total Hours</div>
                                     <span className="text-xl font-bold text-purple-300 tabular-nums group-hover/hours:text-purple-200 transition-colors duration-200">
@@ -1147,24 +1147,25 @@ export default function NewPlanPage() {
 
       {/* Submit Buttons */}
       <Card className={`glow-interactive overflow-hidden transition-all duration-500 ${isAiGenerated && topics.length > 0 ? 'border-2 border-purple-500/50 shadow-lg shadow-purple-500/10' : ''}`}>
-        <CardContent className="pt-6 relative">
+        <CardContent className="pt-4 sm:pt-6 relative">
           {isAiGenerated && topics.length > 0 && (
-            <div className="mb-4 p-4 bg-purple-950/50 rounded-lg border border-purple-500/30 animate-fadeIn">
+            <div className="mb-4 p-3 sm:p-4 bg-purple-950/50 rounded-lg border border-purple-500/30 animate-fadeIn">
               <p className="text-sm font-semibold text-purple-200 flex items-center gap-2">
                 <Sparkles className="h-4 w-4 animate-pulse" />
                 Your AI-generated plan is ready!
               </p>
               <p className="text-xs text-purple-400 mt-1">
-                Review the topics and subtopics above. Make any changes you need, then click "Create Plan" to save it.
+                Review the topics above. Make any changes, then tap "Create Plan".
               </p>
             </div>
           )}
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <AnimatedButton 
               onClick={handleSubmit} 
               disabled={isCreating || !planData.title || !startDate || topics.length === 0}
               variant="primary"
               size="lg"
+              className="w-full sm:w-auto justify-center"
             >
               {isCreating ? (
                 <>
@@ -1180,43 +1181,45 @@ export default function NewPlanPage() {
                 'Create Plan'
               )}
             </AnimatedButton>
-            {isAiGenerated && (
+            <div className="flex gap-3">
+              {isAiGenerated && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAiGenerated(false)
+                    setTopics([])
+                    setCurrentTab('ai')
+                    setGenerationProgress('')
+                  }} 
+                  size="lg"
+                  disabled={isCreating}
+                  className="flex-1 sm:flex-initial border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400/50 transition-all duration-200 hover:scale-105 group/restart"
+                >
+                  <Sparkles className="mr-2 h-4 w-4 group-hover/restart:animate-spin" />
+                  Start Over
+                </Button>
+              )}
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  setIsAiGenerated(false)
-                  setTopics([])
-                  setCurrentTab('ai')
-                  setGenerationProgress('')
-                }} 
-                size="lg"
-                disabled={isCreating}
-                className="border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400/50 transition-all duration-200 hover:scale-105 group/restart"
+                onClick={() => router.back()} 
+                size="lg" 
+                disabled={isCreating || isGenerating}
+                className="flex-1 sm:flex-initial hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-all duration-200"
               >
-                <Sparkles className="mr-2 h-4 w-4 group-hover/restart:animate-spin" />
-                Start Over
+                Cancel
               </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={() => router.back()} 
-              size="lg" 
-              disabled={isCreating || isGenerating}
-              className="hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-all duration-200"
-            >
-              Cancel
-            </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border/50">
-            <p className="text-sm text-text-secondary">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-4 pt-4 border-t border-border/50">
+            <p className="text-xs sm:text-sm text-text-secondary">
               <span className="text-red-400">*</span> Required fields
             </p>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
               <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
                 Topics: {topics.length}
               </span>
               <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">
-                Total Hours: <span className="font-bold">{calculateTotalHours().toFixed(1)}</span>
+                Hours: <span className="font-bold">{calculateTotalHours().toFixed(1)}</span>
               </span>
             </div>
           </div>

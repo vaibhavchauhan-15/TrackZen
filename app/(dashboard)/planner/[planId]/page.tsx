@@ -368,21 +368,21 @@ export default function PlanDetailPage() {
         className="space-y-3"
       >
         {/* Title Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Button
               variant="outline"
               size="icon"
               onClick={() => router.push('/planner')}
-              className="h-9 w-9"
+              className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-text-primary">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-text-primary truncate">
                 {plan.title}
               </h1>
-              <Badge className={getStatusBadgeColor(plan.status)}>
+              <Badge className={`${getStatusBadgeColor(plan.status)} flex-shrink-0`}>
                 {plan.status}
               </Badge>
             </div>
@@ -390,7 +390,7 @@ export default function PlanDetailPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9">
+              <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -424,63 +424,63 @@ export default function PlanDetailPage() {
         </div>
 
         {/* Compact Stats and Plan Type */}
-        <div className="flex items-center justify-between px-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-0 sm:px-4 lg:px-12">
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <BookOpen className="h-4 w-4" />
             <span>{plan.type.charAt(0).toUpperCase() + plan.type.slice(1)} Plan</span>
           </div>
           
-          {/* Compact Stats Row */}
-          <div className="flex items-center gap-6">
+          {/* Compact Stats Row - Scrollable on mobile */}
+          <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.3 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-shrink-0"
             >
               <TrendingUp className="h-4 w-4 text-purple-500" />
               <div className="flex flex-col">
                 <span className="text-xs text-text-muted">Progress</span>
-                <span className="text-lg font-bold text-text-primary">{progressPercentage}%</span>
+                <span className="text-base sm:text-lg font-bold text-text-primary">{progressPercentage}%</span>
               </div>
             </motion.div>
 
-            <div className="h-8 w-px bg-border" />
+            <div className="h-8 w-px bg-border flex-shrink-0" />
 
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.3 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-shrink-0"
             >
               <Calendar className="h-4 w-4 text-blue-500" />
               <div className="flex flex-col">
                 <span className="text-xs text-text-muted">Timeline</span>
-                <span className="text-sm font-semibold text-text-primary">
-                  {plan.endDate ? new Date(plan.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Open-ended'}
+                <span className="text-xs sm:text-sm font-semibold text-text-primary whitespace-nowrap">
+                  {plan.endDate ? new Date(plan.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Open'}
                 </span>
               </div>
             </motion.div>
 
-            <div className="h-8 w-px bg-border" />
+            <div className="h-8 w-px bg-border flex-shrink-0" />
 
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3, duration: 0.3 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-shrink-0"
             >
               <Clock className="h-4 w-4 text-orange-500" />
               <div className="flex flex-col">
                 <span className="text-xs text-text-muted">Est. Hours</span>
-                <span className="text-sm font-semibold text-text-primary">{plan.totalEstimatedHours}h</span>
+                <span className="text-xs sm:text-sm font-semibold text-text-primary">{plan.totalEstimatedHours}h</span>
               </div>
             </motion.div>
           </div>
         </div>
 
         {/* Compact Progress Bar */}
-        <div className="px-12">
+        <div className="px-0 sm:px-4 lg:px-12">
           <div className="flex items-center gap-3">
             <Progress value={progressPercentage} className="h-1.5 flex-1" />
             <span className="text-xs text-text-muted whitespace-nowrap">
@@ -490,19 +490,19 @@ export default function PlanDetailPage() {
         </div>
       </motion.div>
 
-      {/* Study Tracker Tabs - Now Higher Up */}
+      {/* Study Tracker Tabs - Mobile optimized */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 h-12 bg-bg-surface/50 backdrop-blur-sm p-1">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto sm:h-12 bg-bg-surface/50 backdrop-blur-sm p-1 gap-1">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
             Overview
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
-            Timeline Calendar
+          <TabsTrigger value="timeline" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
+            <span className="hidden sm:inline">Timeline </span>Calendar
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
-            Study Analytics
+          <TabsTrigger value="analytics" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
+            <span className="hidden sm:inline">Study </span>Analytics
           </TabsTrigger>
-          <TabsTrigger value="topics" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
+          <TabsTrigger value="topics" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
             Topics
           </TabsTrigger>
         </TabsList>
@@ -537,7 +537,7 @@ export default function PlanDetailPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                     <div>
                       <div className="text-xs text-text-secondary mb-1">Days Remaining</div>
                       <div className="text-xl font-bold">
@@ -590,26 +590,26 @@ export default function PlanDetailPage() {
                 <CardDescription>Track your daily progress and manage study activities</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <Button variant="outline" className="h-16 flex-col gap-1.5">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
+                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
                     <Plus className="h-4 w-4" />
-                    <span className="text-xs">Log Study Hours</span>
+                    <span className="text-[10px] sm:text-xs text-center leading-tight">Log Hours</span>
                   </Button>
-                  <Button variant="outline" className="h-16 flex-col gap-1.5">
+                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
                     <FileText className="h-4 w-4" />
-                    <span className="text-xs">Mock Test</span>
+                    <span className="text-[10px] sm:text-xs text-center leading-tight">Mock Test</span>
                   </Button>
-                  <Button variant="outline" className="h-16 flex-col gap-1.5">
+                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
                     <RotateCcw className="h-4 w-4" />
-                    <span className="text-xs">Revisions</span>
+                    <span className="text-[10px] sm:text-xs text-center leading-tight">Revisions</span>
                   </Button>
-                  <Button variant="outline" className="h-16 flex-col gap-1.5">
+                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
                     <BookMarked className="h-4 w-4" />
-                    <span className="text-xs">Mistakes</span>
+                    <span className="text-[10px] sm:text-xs text-center leading-tight">Mistakes</span>
                   </Button>
-                  <Button variant="outline" className="h-16 flex-col gap-1.5">
+                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2 col-span-3 sm:col-span-1">
                     <BarChart3 className="h-4 w-4" />
-                    <span className="text-xs">Weekly Review</span>
+                    <span className="text-[10px] sm:text-xs text-center leading-tight">Weekly Review</span>
                   </Button>
                 </div>
               </CardContent>
@@ -999,7 +999,7 @@ export default function PlanDetailPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                       {[
                         'Finish High priority early',
                         'Track hours daily',
@@ -1048,9 +1048,9 @@ export default function PlanDetailPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-[calc(100vh-280px)] min-h-[500px]">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-[400px] lg:h-[calc(100vh-280px)] lg:min-h-[500px]">
                 {/* Left Column - Topics List */}
-                <Card className="lg:col-span-2 overflow-hidden flex flex-col">
+                <Card className="lg:col-span-2 overflow-hidden flex flex-col max-h-[350px] lg:max-h-none">
                   <CardHeader className="pb-3 flex-shrink-0">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <Target className="h-5 w-5" />
@@ -1142,7 +1142,7 @@ export default function PlanDetailPage() {
                 </Card>
 
                 {/* Right Column - Subtopics */}
-                <Card className="lg:col-span-3 overflow-hidden flex flex-col">
+                <Card className="lg:col-span-3 overflow-hidden flex flex-col min-h-[300px] lg:min-h-0">
                   <AnimatePresence mode="wait">
                     {selectedTopicId ? (() => {
                       const selectedTopic = plan.topics.find((t: any) => t.id === selectedTopicId)
