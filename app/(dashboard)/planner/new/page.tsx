@@ -426,75 +426,75 @@ export default function NewPlanPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 sm:space-y-6 animate-in pb-6">
-      {/* Header with animated gradient */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-900/20 via-bg-surface to-blue-900/20 p-4 sm:p-6 border border-purple-500/20">
+    <div className="mx-auto max-w-5xl space-y-3 sm:space-y-6 animate-in pb-20 sm:pb-6">
+      {/* Header with animated gradient - Mobile Optimized */}
+      <div className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-900/20 via-bg-surface to-blue-900/20 p-3 sm:p-6 border border-purple-500/20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-500/10 via-transparent to-transparent" />
         <div className="relative">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary bg-gradient-to-r from-purple-400 via-accent-purple to-blue-400 bg-clip-text text-transparent">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-text-primary bg-gradient-to-r from-purple-400 via-accent-purple to-blue-400 bg-clip-text text-transparent">
             Create New Plan
           </h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-text-secondary">
-            Use AI to generate a plan or create one manually
+          <p className="mt-1 text-xs sm:text-base text-text-secondary">
+            Use AI to generate or create manually
           </p>
         </div>
       </div>
 
       {error && (
         <Card className="border-red-500/50 bg-red-950/30 animate-shake">
-          <CardContent className="pt-6">
-            <p className="text-red-400 flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <CardContent className="py-3 sm:pt-6">
+            <p className="text-red-400 flex items-center gap-2 text-xs sm:text-sm">
+              <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
               {error}
             </p>
           </CardContent>
         </Card>
       )}
 
-      {/* Plan Basic Info - Collapsible */}
+      {/* Plan Basic Info - Collapsible - Mobile Optimized */}
       <Card className="glow-interactive overflow-hidden transition-all duration-300 hover:border-purple-500/40">
         <CardHeader 
-          className="relative cursor-pointer select-none"
+          className="relative cursor-pointer select-none p-3 sm:p-6"
           onClick={() => setPlanDetailsExpanded(!planDetailsExpanded)}
         >
           <div className="absolute -top-12 -right-12 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl transition-all duration-500" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-purple-500/10 transition-colors duration-300">
-                <CalendarDays className="h-5 w-5 text-purple-400 transition-transform duration-300" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="p-1 sm:p-1.5 rounded-lg bg-purple-500/10 transition-colors duration-300 flex-shrink-0">
+                <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400 transition-transform duration-300" />
               </span>
-              <div>
-                <CardTitle className="flex items-center gap-2">
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
                   Plan Details
                   {!planDetailsExpanded && planData.title && (
-                    <span className="text-sm font-normal text-purple-400">
+                    <span className="text-xs sm:text-sm font-normal text-purple-400 truncate max-w-[120px] sm:max-w-none">
                       — {planData.title}
                     </span>
                   )}
                 </CardTitle>
-                <CardDescription>Set up your plan's basic information</CardDescription>
+                <CardDescription className="text-[10px] sm:text-sm">Set up your plan's basic info</CardDescription>
               </div>
             </div>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="hover:bg-purple-500/20 transition-all duration-200"
+              className="hover:bg-purple-500/20 transition-all duration-200 h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation()
                 setPlanDetailsExpanded(!planDetailsExpanded)
               }}
             >
-              <ChevronDown className={`h-5 w-5 text-purple-400 transition-transform duration-300 ${planDetailsExpanded ? 'rotate-0' : '-rotate-90'}`} />
+              <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-purple-400 transition-transform duration-300 ${planDetailsExpanded ? 'rotate-0' : '-rotate-90'}`} />
             </Button>
           </div>
         </CardHeader>
         
         {/* Collapsible Content */}
         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${planDetailsExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-          <CardContent className="space-y-5 pb-6">
+          <CardContent className="space-y-4 sm:space-y-5 pb-4 sm:pb-6 px-3 sm:px-6">
             {/* Title Field */}
             <div className="group/input">
-              <Label htmlFor="title" className="flex items-center gap-1 text-sm font-medium">
+              <Label htmlFor="title" className="flex items-center gap-1 text-xs sm:text-sm font-medium">
                 Plan Title <span className="text-red-400">*</span>
               </Label>
               <Input
@@ -520,12 +520,12 @@ export default function NewPlanPage() {
 
             {/* Plan Type */}
             <div>
-              <Label htmlFor="type" className="text-sm font-medium">Plan Type</Label>
+              <Label htmlFor="type" className="text-xs sm:text-sm font-medium">Plan Type</Label>
               <Select
                 value={planData.type}
                 onValueChange={(value) => setPlanData({ ...planData, type: value })}
               >
-                <SelectTrigger className="mt-2 transition-all duration-200 hover:border-purple-400/50">
+                <SelectTrigger className="mt-1.5 sm:mt-2 transition-all duration-200 hover:border-purple-400/50 h-9 sm:h-10 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -538,12 +538,12 @@ export default function NewPlanPage() {
             </div>
 
             {/* Date Fields */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               <div>
-                <Label className="text-sm font-medium flex items-center gap-1">
+                <Label className="text-xs sm:text-sm font-medium flex items-center gap-1">
                   Start Date <span className="text-red-400">*</span>
                 </Label>
-                <div className="mt-2">
+                <div className="mt-1.5 sm:mt-2">
                   <DatePicker
                     value={startDate}
                     onChange={(date) => {
@@ -570,8 +570,8 @@ export default function NewPlanPage() {
                 )}
               </div>
               <div>
-                <Label className="text-sm font-medium">End Date (Optional)</Label>
-                <div className="mt-2">
+                <Label className="text-xs sm:text-sm font-medium">End Date (Optional)</Label>
+                <div className="mt-1.5 sm:mt-2">
                   <DatePicker
                     value={endDate}
                     onChange={(date) => {
@@ -597,7 +597,7 @@ export default function NewPlanPage() {
 
             {/* Daily Hours */}
             <div>
-              <Label htmlFor="dailyHours" className="text-sm font-medium">Daily Study Hours (Optional)</Label>
+              <Label htmlFor="dailyHours" className="text-xs sm:text-sm font-medium">Daily Study Hours (Optional)</Label>
               <Input
                 id="dailyHours"
                 type="number"
@@ -613,7 +613,7 @@ export default function NewPlanPage() {
                   }
                 }}
                 onBlur={(e) => handleFieldBlur('dailyHours', e.target.value)}
-                className={`mt-2 text-base font-medium transition-all duration-200 hover:border-purple-400/50 focus:ring-2 focus:ring-purple-500/50 ${fieldErrors.dailyHours ? 'border-red-500/50 focus:ring-red-500/50' : ''}`}
+                className={`mt-1.5 sm:mt-2 text-sm sm:text-base font-medium transition-all duration-200 hover:border-purple-400/50 focus:ring-2 focus:ring-purple-500/50 h-9 sm:h-10 ${fieldErrors.dailyHours ? 'border-red-500/50 focus:ring-red-500/50' : ''}`}
               />
               {fieldErrors.dailyHours && (
                 <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1 animate-fadeIn">
@@ -628,20 +628,20 @@ export default function NewPlanPage() {
 
             {/* Summary badges when filled */}
             {(planData.title || startDate) && (
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50 animate-fadeIn">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-2 border-t border-border/50 animate-fadeIn">
                 {planData.title && (
-                  <span className="px-2 py-1 rounded-md bg-purple-500/10 text-purple-300 text-xs flex items-center gap-1">
-                    📋 {planData.title.slice(0, 30)}{planData.title.length > 30 ? '...' : ''}
+                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-purple-500/10 text-purple-300 text-[10px] sm:text-xs flex items-center gap-1">
+                    📋 {planData.title.slice(0, 20)}{planData.title.length > 20 ? '...' : ''}
                   </span>
                 )}
                 {startDate && (
-                  <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-300 text-xs flex items-center gap-1">
-                    📅 {startDate.toLocaleDateString()}
-                    {endDate && ` → ${endDate.toLocaleDateString()}`}
+                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-blue-500/10 text-blue-300 text-[10px] sm:text-xs flex items-center gap-1">
+                    📅 {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {endDate && ` → ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                   </span>
                 )}
                 {planData.dailyHours && (
-                  <span className="px-2 py-1 rounded-md bg-green-500/10 text-green-300 text-xs flex items-center gap-1">
+                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-green-500/10 text-green-300 text-[10px] sm:text-xs flex items-center gap-1">
                     ⏰ {planData.dailyHours}h/day
                   </span>
                 )}
@@ -653,38 +653,38 @@ export default function NewPlanPage() {
 
       {/* Topics Section */}
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-bg-surface p-1 rounded-xl overflow-hidden">
+        <TabsList className="grid w-full grid-cols-2 bg-bg-surface/80 backdrop-blur-sm p-1 sm:p-1.5 rounded-xl sm:rounded-2xl overflow-hidden h-12 sm:h-14 shadow-lg shadow-purple-900/10 border border-purple-500/10">
           <TabsTrigger 
             value="manual" 
             disabled={isGenerating}
-            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 rounded-lg transition-all duration-300 group text-xs sm:text-sm py-2.5 sm:py-2"
+            className="touch-ripple data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/25 data-[state=active]:to-purple-600/20 data-[state=active]:text-purple-200 data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/10 rounded-lg sm:rounded-xl transition-all duration-200 ease-out group text-xs sm:text-sm font-medium py-2.5 sm:py-3 px-3 sm:px-4 active:scale-[0.98]"
           >
-            <Calendar className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="truncate">{isAiGenerated ? 'Review Plan' : 'Add Topics'}</span>
+            <Calendar className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5 group-data-[state=active]:text-purple-300 transition-all duration-200" />
+            <span className="truncate">{isAiGenerated ? 'Review' : 'Topics'}</span>
           </TabsTrigger>
           <TabsTrigger 
             value="ai" 
             disabled={isGenerating || isAiGenerated}
-            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 rounded-lg transition-all duration-300 group text-xs sm:text-sm py-2.5 sm:py-2"
+            className="touch-ripple data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/25 data-[state=active]:to-blue-500/20 data-[state=active]:text-purple-200 data-[state=active]:shadow-md data-[state=active]:shadow-purple-500/10 rounded-lg sm:rounded-xl transition-all duration-200 ease-out group text-xs sm:text-sm font-medium py-2.5 sm:py-3 px-3 sm:px-4 disabled:opacity-40 active:scale-[0.98]"
           >
-            <Sparkles className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:animate-pulse transition-all duration-300" />
+            <Sparkles className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5 group-data-[state=active]:text-purple-300 group-data-[state=active]:animate-pulse transition-all duration-200" />
             <span className="truncate">AI Generate</span>
           </TabsTrigger>
         </TabsList>
 
         {/* Generation Progress Indicator */}
         {isGenerating && (
-          <Card className="mt-4 border-purple-500/50 bg-gradient-to-r from-purple-950/50 to-blue-950/50 overflow-hidden">
+          <Card className="mt-4 border-purple-500/50 bg-gradient-to-r from-purple-950/50 to-blue-950/50 overflow-hidden animate-slideInUp">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent animate-pulse" />
-            <CardContent className="pt-6 relative">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-500/30 border-t-purple-500"></div>
-                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-purple-400 animate-sparkle" />
+            <CardContent className="pt-5 sm:pt-6 pb-5 relative">
+              <div className="flex items-start sm:items-center gap-4">
+                <div className="relative flex-shrink-0">
+                  <div className="animate-spin rounded-full h-12 w-12 sm:h-14 sm:w-14 border-2 border-purple-500/30 border-t-purple-500"></div>
+                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-purple-400 animate-sparkle" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-purple-100 truncate">{generationProgress}</p>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="font-semibold text-purple-100 text-sm sm:text-base truncate">{generationProgress}</p>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -696,36 +696,36 @@ export default function NewPlanPage() {
                         setGenerationProgress('')
                         setGenerationPercent(0)
                       }}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all duration-200"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/15 transition-all duration-150 text-xs h-8 px-3 flex-shrink-0 active:scale-95"
                     >
                       Cancel
                     </Button>
                   </div>
-                  <div className="mt-2 h-2 bg-purple-950/50 rounded-full overflow-hidden">
+                  <div className="h-2 bg-purple-950/50 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${generationPercent}%` }}
                     />
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-purple-300/80">
-                      Building your personalized study plan...
+                    <p className="text-xs sm:text-sm text-purple-300/80">
+                      Building your personalized plan...
                     </p>
-                    <span className="text-xs font-mono text-purple-400">{generationPercent}%</span>
+                    <span className="text-xs font-mono text-purple-400 tabular-nums">{generationPercent}%</span>
                   </div>
                 </div>
               </div>
               {/* Live stats during streaming */}
               {streamStats.topics > 0 && (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 pt-4 border-t border-purple-500/20">
-                  <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-300 text-xs animate-countUp">
+                  <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 text-xs font-medium animate-countUp">
                     📚 {streamStats.topics} topics
                   </span>
-                  <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 text-xs animate-countUp">
+                  <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-300 text-xs font-medium animate-countUp">
                     📝 {streamStats.subtopics} subtopics
                   </span>
-                  <span className="px-2 py-1 rounded bg-green-500/20 text-green-300 text-xs animate-countUp">
-                    ⏱️ {streamStats.hours}h total
+                  <span className="px-2.5 py-1 rounded-lg bg-green-500/15 text-green-300 text-xs font-medium animate-countUp">
+                    ⏱️ {streamStats.hours}h
                   </span>
                 </div>
               )}
@@ -735,17 +735,17 @@ export default function NewPlanPage() {
 
         {/* AI Generated Banner */}
         {isAiGenerated && !isGenerating && topics.length > 0 && (
-          <Card className="mt-4 border-green-500/50 bg-gradient-to-r from-green-950/40 to-emerald-950/40 animate-fadeIn overflow-hidden">
+          <Card className="mt-4 border-green-500/40 bg-gradient-to-r from-green-950/40 to-emerald-950/40 animate-slideInUp overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-green-500/10 via-transparent to-transparent" />
-            <CardContent className="pt-6 relative">
+            <CardContent className="pt-4 sm:pt-5 pb-4 relative">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-green-500/20 animate-bounce-subtle">
-                  <Sparkles className="h-6 w-6 text-green-400" />
+                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/15 shadow-lg shadow-green-500/10 animate-bounce-subtle flex-shrink-0">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-green-100">AI Plan Generated Successfully! ✨</p>
-                  <p className="text-sm text-green-300/80 mt-1">
-                    {generationProgress} You can edit any topic, subtopic, or priority below.
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-green-100 text-sm sm:text-base">✨ AI Plan Generated!</p>
+                  <p className="text-xs sm:text-sm text-green-300/80 mt-1 line-clamp-2">
+                    {generationProgress} Edit any topic below.
                   </p>
                 </div>
               </div>
@@ -753,38 +753,44 @@ export default function NewPlanPage() {
           </Card>
         )}
 
-        <TabsContent value="manual" className="space-y-4">
-          <Card className="glow-interactive overflow-hidden">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="p-1.5 rounded-lg bg-purple-500/10">
-                      <Plus className="h-5 w-5 text-purple-400" />
+        <TabsContent value="manual" className="space-y-3 sm:space-y-4 animate-tabSwitch">
+          <Card className="glow-interactive overflow-hidden border-purple-500/15">
+            <CardHeader className="p-3.5 sm:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-lg">
+                    <span className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 shadow-inner flex-shrink-0">
+                      <Plus className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                     </span>
-                    Topics & Subtopics
+                    <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">Topics & Subtopics</span>
                   </CardTitle>
-                  <CardDescription>
-                    Add topics to your study plan with priorities. 
-                    <span className="block mt-2 text-sm font-semibold text-purple-400 bg-purple-950/50 px-3 py-2 rounded-md border border-purple-800/50">
-                      ✨ Each topic requires at least one subtopic with hours. Topic hours are auto-calculated!
+                  <CardDescription className="mt-2 sm:mt-3 space-y-2">
+                    <span className="text-[11px] sm:text-sm text-text-secondary block">Add topics with priorities.</span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-sm font-medium text-purple-300 bg-gradient-to-r from-purple-950/60 to-purple-900/40 px-2.5 sm:px-3 py-2 rounded-lg border border-purple-700/40 shadow-sm">
+                      <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                      Each topic needs subtopics with hours
                     </span>
                   </CardDescription>
                 </div>
                 <AnimatedAddButton 
-                  text="Add Topic" 
+                  text="Add" 
                   onClick={addTopic} 
                   size="sm"
+                  className="flex-shrink-0 shadow-lg shadow-purple-500/20"
                 />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
               {topics.length === 0 ? (
-                <div className="text-center py-8 text-text-secondary">
-                  <p>No topics added yet. Click "Add Topic" to get started.</p>
+                <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                  <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-purple-500/15 to-purple-600/10 mb-4">
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-purple-400/70" />
+                  </div>
+                  <p className="text-sm sm:text-base text-text-secondary font-medium">No topics added yet</p>
+                  <p className="text-xs sm:text-sm text-text-secondary/70 mt-1">Tap "Add" to start building your plan</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2.5 sm:space-y-4 stagger-children">
                   {topics.map((topic, topicIndex) => {
                     const subtopicTotal = getSubtopicTotal(topicIndex)
                     const hasSubtopics = topic.subtopics && topic.subtopics.length > 0
@@ -797,12 +803,12 @@ export default function NewPlanPage() {
                     return (
                     <Card 
                       key={topicIndex} 
-                      className={`border-2 transition-all duration-300 ${
+                      className={`border transition-all duration-200 ease-out touch-ripple ${
                         isCurrentStreaming
                           ? 'shadow-xl border-purple-500/70 ring-2 ring-purple-500/30 animate-glowPulse'
                           : isExpanded 
-                            ? 'shadow-xl border-purple-500/50 ring-2 ring-purple-500/20' 
-                            : 'hover:shadow-lg hover:border-purple-500/30 hover:scale-[1.01]'
+                            ? 'shadow-xl shadow-purple-500/10 border-purple-500/50 ring-2 ring-purple-500/20' 
+                            : 'hover:shadow-lg hover:border-purple-500/30 active:scale-[0.99]'
                       } ${isNewlyStreamed && !isExpanded ? 'animate-slideInTopic' : ''}`}
                       style={{ 
                         opacity: isNewlyStreamed && !isExpanded ? 0 : 1,
@@ -812,66 +818,70 @@ export default function NewPlanPage() {
                       {/* Collapsed Header */}
                       {!isExpanded && (
                         <div 
-                          className="p-4 flex items-center justify-between cursor-pointer hover:bg-purple-950/20 transition-all duration-300 group"
+                          className="p-3 sm:p-4 flex items-center justify-between cursor-pointer active:bg-purple-950/30 hover:bg-purple-950/20 transition-colors duration-150 group gap-3 min-h-[64px] sm:min-h-[72px]"
                           onClick={() => toggleTopicExpand(topicIndex)}
                         >
-                          <div className="flex items-center gap-3 flex-1">
-                            <ChevronRight className="h-5 w-5 text-purple-400 transition-all duration-300 group-hover:translate-x-1 group-hover:text-purple-300" />
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-base text-text-primary group-hover:text-purple-300 transition-colors duration-200">
+                          <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                            <div className="p-1.5 rounded-lg bg-purple-500/10 flex-shrink-0">
+                              <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400 transition-transform duration-200 group-hover:translate-x-0.5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm sm:text-base text-text-primary group-hover:text-purple-200 transition-colors duration-150 truncate">
                                 {topic.title || `Topic ${topicIndex + 1}`}
                               </h3>
-                              <div className="flex items-center gap-3 mt-1">
-                                <span className="text-sm text-purple-400 font-medium">
-                                  {(topic.estimatedHours || 0).toFixed(1)}h • {topic.subtopics.length} subtopic{topic.subtopics.length !== 1 ? 's' : ''}
+                              <div className="flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
+                                <span className="text-xs sm:text-sm text-purple-400 font-medium whitespace-nowrap tabular-nums">
+                                  {(topic.estimatedHours || 0).toFixed(1)}h • {topic.subtopics.length} sub
                                 </span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full transition-all duration-200 ${
+                                <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full font-medium transition-all duration-150 whitespace-nowrap animate-badgePop ${
                                   hasInvalidSubtopics 
-                                    ? 'bg-red-900/50 text-red-300 border border-red-700/50' 
-                                    : 'bg-green-900/50 text-green-300 border border-green-700/50'
+                                    ? 'bg-red-500/15 text-red-300 border border-red-500/30' 
+                                    : 'bg-green-500/15 text-green-300 border border-green-500/30'
                                 }`}>
                                   {hasInvalidSubtopics ? '⚠ Incomplete' : '✓ Complete'}
                                 </span>
                               </div>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="group-hover:bg-purple-500/20 transition-all duration-200 hover:scale-105"
+                              className="hidden sm:flex bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-150 h-9 px-3 text-sm text-purple-300"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 toggleTopicExpand(topicIndex)
                               }}
                             >
-                              <Edit2 className="h-4 w-4 mr-1 group-hover:rotate-12 transition-transform duration-300" />
+                              <Edit2 className="h-4 w-4 mr-1.5" />
                               Edit
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeTopic(topicIndex)
+                              }}
+                              className="hover:bg-red-500/15 active:bg-red-500/25 transition-colors duration-150 group/delete h-10 w-10 sm:h-9 sm:w-9"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-400 group-hover/delete:text-red-300" />
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              removeTopic(topicIndex)
-                            }}
-                            className="hover:bg-red-950/50 hover:scale-110 transition-all duration-200 group/delete"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-400 group-hover/delete:animate-wiggle" />
-                          </Button>
                         </div>
                       )}
                       
                       {/* Expanded Content */}
                       {isExpanded && (
-                      <CardContent className="pt-6 space-y-4 animate-fadeIn">
+                      <CardContent className="pt-4 sm:pt-6 px-3 sm:px-6 pb-4 sm:pb-6 space-y-4 sm:space-y-5 animate-expandContent">
                         {/* Header with collapse button */}
-                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-purple-500/30">
+                        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-purple-500/20">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-purple-300 bg-purple-500/20 px-2 py-1 rounded animate-pulse-subtle">
-                              Topic #{topicIndex + 1}
+                            <span className="text-xs sm:text-sm font-bold text-purple-300 bg-gradient-to-r from-purple-500/20 to-purple-600/15 px-2.5 py-1 rounded-lg">
+                              #{topicIndex + 1}
                             </span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Edit2 className="h-3 w-3 animate-wiggle" />
+                            <span className="text-xs text-purple-400/80 flex items-center gap-1.5">
+                              <Edit2 className="h-3 w-3" />
                               Editing
                             </span>
                           </div>
@@ -879,66 +889,68 @@ export default function NewPlanPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleTopicExpand(topicIndex)}
-                            className="hover:bg-green-500/20 text-green-400 hover:text-green-300 transition-all duration-200 hover:scale-105"
+                            className="bg-green-500/10 hover:bg-green-500/20 text-green-400 hover:text-green-300 transition-all duration-150 h-9 sm:h-10 text-xs sm:text-sm px-3 sm:px-4 active:scale-95"
                           >
-                            <Check className="h-4 w-4 mr-1" />
+                            <Check className="h-4 w-4 mr-1.5" />
                             Done
                           </Button>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-start gap-3">
-                          <div className="flex-1 w-full grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-                            <div className="sm:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                              <div className="flex-1 group/input">
-                                <Label>Topic Title <span className="text-red-400">*</span></Label>
-                                <Input
-                                  value={topic.title}
-                                  onChange={(e) => updateTopic(topicIndex, 'title', e.target.value)}
-                                  placeholder="e.g., Data Structures"
-                                  className="mt-1 transition-all duration-200 focus:ring-2 focus:ring-purple-500/50 hover:border-purple-400/50"
-                                />
-                              </div>
-                              <div className="pt-0 sm:pt-6">
-                                <div className="px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-2 border-purple-500/30 shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105 group/hours">
-                                  <div className="text-center">
-                                    <div className="text-xs text-purple-400 font-medium mb-0.5">Total Hours</div>
-                                    <span className="text-xl font-bold text-purple-300 tabular-nums group-hover/hours:text-purple-200 transition-colors duration-200">
-                                      {(topic.estimatedHours || 0).toFixed(1)}h
-                                    </span>
-                                  </div>
+                        <div className="space-y-4">
+                          {/* Title and Hours Row */}
+                          <div className="flex flex-col gap-3">
+                            <div className="flex-1 input-focus-glow rounded-lg">
+                              <Label className="text-xs sm:text-sm font-medium">Topic Title <span className="text-red-400">*</span></Label>
+                              <Input
+                                value={topic.title}
+                                onChange={(e) => updateTopic(topicIndex, 'title', e.target.value)}
+                                placeholder="e.g., Data Structures"
+                                className="mt-1.5 transition-all duration-150 focus:ring-2 focus:ring-purple-500/50 hover:border-purple-400/40 h-11 sm:h-10 text-sm"
+                              />
+                            </div>
+                            <div className="flex items-end gap-3">
+                              <div className="flex-1 px-3 py-2.5 sm:py-3 rounded-xl bg-gradient-to-br from-purple-500/15 to-blue-500/15 border border-purple-500/25 shadow-lg shadow-purple-500/5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] sm:text-xs text-purple-400 font-medium">Total Hours</span>
+                                  <span className="text-lg sm:text-xl font-bold text-purple-300 tabular-nums">
+                                    {(topic.estimatedHours || 0).toFixed(1)}h
+                                  </span>
                                 </div>
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeTopic(topicIndex)}
+                                className="hover:bg-red-500/15 active:bg-red-500/25 transition-colors duration-150 group/delete h-11 w-11 sm:h-10 sm:w-10 flex-shrink-0"
+                              >
+                                <Trash2 className="h-4.5 w-4.5 sm:h-4 sm:w-4 text-red-400" />
+                              </Button>
                             </div>
-                            <div>
-                              <Label className="flex items-center gap-2">
-                                Estimated Hours <span className="text-red-400">*</span>
-                                <span className="text-xs text-green-400 font-normal">✨ Auto-calculated from subtopics</span>
+                          </div>
+                          
+                          {/* Hours and Priority Row */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="input-focus-glow rounded-lg">
+                              <Label className="text-xs sm:text-sm font-medium flex items-center gap-1.5">
+                                Hours <span className="text-[10px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">Auto</span>
                               </Label>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  step="0.5"
-                                  min="0"
-                                  value={topic.estimatedHours}
-                                  disabled
-                                  placeholder="Add subtopic hours"
-                                  className="mt-1 text-base font-semibold bg-muted/50 cursor-not-allowed opacity-70"
-                                />
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                  <span className="text-xs text-muted-foreground bg-purple-500/20 px-2 py-0.5 rounded">Auto</span>
-                                </div>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                💡 Total calculated from {topic.subtopics.length} subtopic{topic.subtopics.length !== 1 ? 's' : ''}
-                              </p>
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                value={topic.estimatedHours}
+                                disabled
+                                placeholder="Auto"
+                                className="mt-1.5 text-sm font-semibold bg-muted/50 cursor-not-allowed opacity-70 h-11 sm:h-10"
+                              />
                             </div>
                             <div>
-                              <Label>Priority</Label>
+                              <Label className="text-xs sm:text-sm font-medium">Priority</Label>
                               <Select
                                 value={topic.priority.toString()}
                                 onValueChange={(value) => updateTopic(topicIndex, 'priority', parseInt(value))}
                               >
-                                <SelectTrigger className="mt-1 transition-all duration-200 hover:border-purple-400/50">
+                                <SelectTrigger className="mt-1.5 transition-all duration-150 hover:border-purple-400/40 h-11 sm:h-10 text-xs sm:text-sm">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -976,32 +988,26 @@ export default function NewPlanPage() {
                               </Select>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeTopic(topicIndex)}
-                            className="mt-6 hover:bg-red-950/50 hover:scale-110 transition-all duration-200 group/delete"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-400 group-hover/delete:animate-wiggle" />
-                          </Button>
                         </div>
 
                         {/* Subtopics */}
-                        <div className="ml-6 space-y-3 border-l-2 border-purple-500/30 pl-4 transition-all duration-300">
-                          <div className="flex items-center justify-between">
+                        <div className="ml-0 sm:ml-4 space-y-3 border-l-2 border-purple-500/30 pl-3 sm:pl-4 transition-all duration-200">
+                          <div className="flex items-center justify-between gap-2">
                             <button
                               onClick={() => toggleSubtopicsExpand(topicIndex)}
-                              className="flex items-center gap-2 text-sm font-semibold text-purple-300 hover:text-purple-200 transition-colors group/subtopics"
+                              className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-purple-300 hover:text-purple-200 transition-colors duration-150 py-1 active:opacity-80"
                             >
                               <ChevronDown 
-                                className={`h-4 w-4 transition-transform duration-300 ${
+                                className={`h-4 w-4 transition-transform duration-200 ${
                                   areSubtopicsExpanded ? 'rotate-0' : '-rotate-90'
                                 }`}
                               />
-                              📝 Subtopics <span className="text-red-400">*</span> (Required)
+                              <span className="flex items-center gap-1.5">
+                                📝 Subtopics <span className="text-red-400">*</span>
+                              </span>
                               {hasSubtopics && (
-                                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                  {topic.subtopics.length} item{topic.subtopics.length !== 1 ? 's' : ''} • {subtopicTotal.toFixed(1)}h
+                                <span className="text-[10px] sm:text-xs font-normal text-purple-400/80 bg-purple-500/10 px-2 py-0.5 rounded-full">
+                                  {topic.subtopics.length} • {subtopicTotal.toFixed(1)}h
                                 </span>
                               )}
                             </button>
@@ -1009,75 +1015,77 @@ export default function NewPlanPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => addSubtopic(topicIndex)}
-                              className="border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400/50 transition-all duration-200 hover:scale-105 group/add"
+                              className="border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/15 hover:border-purple-400/50 transition-all duration-150 group/add h-9 sm:h-8 text-xs px-3 active:scale-95"
                             >
-                              <Plus className="mr-1 h-3 w-3 group-hover/add:rotate-90 transition-transform duration-300" />
-                              Add Subtopic
+                              <Plus className="mr-1 h-3.5 w-3.5 group-hover/add:rotate-90 transition-transform duration-200" />
+                              Add
                             </Button>
                           </div>
                           
                           {/* Subtopics List with Animation */}
                           <div 
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                            className={`overflow-hidden transition-all duration-250 ease-out ${
                               areSubtopicsExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
                             }`}
                           >
-                            <div className="space-y-3 pt-2">
+                            <div className="space-y-2.5 sm:space-y-3 pt-2">
                           {topic.subtopics.map((subtopic, subtopicIndex) => (
                             <div 
                               key={subtopicIndex} 
-                              className="flex items-start gap-2 p-3 rounded-lg bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/20 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 hover:scale-[1.01] group/subtopic"
+                              className="flex items-start gap-2 p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-purple-500/5 to-blue-500/5 border border-purple-500/15 hover:border-purple-500/30 transition-all duration-150 active:bg-purple-500/10 group/subtopic"
                             >
-                              <div className="flex-1 grid gap-2 md:grid-cols-3">
+                              <div className="flex-1 space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-2">
                                 <Input
                                   value={subtopic.title}
                                   onChange={(e) => updateSubtopic(topicIndex, subtopicIndex, 'title', e.target.value)}
                                   placeholder="Subtopic title *"
-                                  className="border-purple-500/30 focus:ring-purple-500/50 transition-all duration-200 group-hover/subtopic:border-purple-400/50"
+                                  className="border-purple-500/20 focus:border-purple-400/50 focus:ring-purple-500/40 transition-all duration-150 h-10 sm:h-9 text-sm"
                                   required
                                 />
-                                <div className="relative">
-                                  <Input
-                                    type="number"
-                                    step="0.5"
-                                    min="0.5"
-                                    value={subtopic.estimatedHours || ''}
-                                    onChange={(e) => updateSubtopic(topicIndex, subtopicIndex, 'estimatedHours', parseFloat(e.target.value) || 0)}
-                                    placeholder="Hours *"
-                                    className="text-base font-semibold border-purple-500/30 focus:ring-purple-500/50 transition-all duration-200 group-hover/subtopic:border-purple-400/50"
-                                    required
-                                  />
-                                  {(!subtopic.estimatedHours || subtopic.estimatedHours === 0) && (
-                                    <div className="absolute -bottom-5 left-0 text-xs text-red-400 animate-pulse">
-                                      Required
-                                    </div>
-                                  )}
+                                <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      step="0.5"
+                                      min="0.5"
+                                      value={subtopic.estimatedHours || ''}
+                                      onChange={(e) => updateSubtopic(topicIndex, subtopicIndex, 'estimatedHours', parseFloat(e.target.value) || 0)}
+                                      placeholder="Hours *"
+                                      className="text-sm font-semibold border-purple-500/20 focus:border-purple-400/50 focus:ring-purple-500/40 transition-all duration-150 h-10 sm:h-9"
+                                      required
+                                    />
+                                    {(!subtopic.estimatedHours || subtopic.estimatedHours === 0) && (
+                                      <div className="absolute -bottom-4 left-0 text-[10px] text-red-400 font-medium">
+                                        Required
+                                      </div>
+                                    )}
+                                  </div>
+                                  <Select
+                                    value={subtopic.priority.toString()}
+                                    onValueChange={(value) => updateSubtopic(topicIndex, subtopicIndex, 'priority', parseInt(value))}
+                                  >
+                                    <SelectTrigger className="border-purple-500/20 transition-all duration-150 h-10 sm:h-9 text-xs sm:text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="1">🔴 Highest</SelectItem>
+                                      <SelectItem value="2">🟠 High</SelectItem>
+                                      <SelectItem value="3">🟡 Medium</SelectItem>
+                                      <SelectItem value="4">🔵 Low</SelectItem>
+                                      <SelectItem value="5">⚪ Lowest</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
-                                <Select
-                                  value={subtopic.priority.toString()}
-                                  onValueChange={(value) => updateSubtopic(topicIndex, subtopicIndex, 'priority', parseInt(value))}
-                                >
-                                  <SelectTrigger className="border-purple-500/30 transition-all duration-200 group-hover/subtopic:border-purple-400/50">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="1">🔴 Highest</SelectItem>
-                                    <SelectItem value="2">🟠 High</SelectItem>
-                                    <SelectItem value="3">🟡 Medium</SelectItem>
-                                    <SelectItem value="4">🔵 Low</SelectItem>
-                                    <SelectItem value="5">⚪ Lowest</SelectItem>
-                                  </SelectContent>
-                                </Select>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => removeSubtopic(topicIndex, subtopicIndex)}
                                 disabled={topic.subtopics.length === 1}
-                                className="hover:bg-red-950/50 transition-all duration-200 hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed group/del"
+                                className="hover:bg-red-500/15 active:bg-red-500/25 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed h-10 w-10 sm:h-9 sm:w-9 flex-shrink-0 mt-0 sm:mt-0"
                                 title={topic.subtopics.length === 1 ? 'Cannot remove last subtopic' : 'Remove subtopic'}
                               >
-                                <Trash2 className="h-3 w-3 text-red-400 group-hover/del:animate-wiggle" />
+                                <Trash2 className="h-4 w-4 text-red-400" />
                               </Button>
                             </div>
                           ))}
@@ -1085,8 +1093,8 @@ export default function NewPlanPage() {
                           </div>
                           
                           {topic.subtopics.length === 1 && areSubtopicsExpanded && (
-                            <p className="text-xs text-amber-400/80 italic flex items-center gap-1 pt-2 animate-fadeIn">
-                              ⚠️ At least one subtopic is required per topic
+                            <p className="text-[10px] sm:text-xs text-amber-400/80 italic flex items-center gap-1.5 pt-2 animate-fadeIn">
+                              ⚠️ At least one subtopic required
                             </p>
                           )}
                         </div>
@@ -1101,43 +1109,45 @@ export default function NewPlanPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-4">
-          <Card className="glow-interactive overflow-hidden group/ai min-h-[320px]">
-            <div className="absolute -top-20 -right-20 w-40 h-15 bg-purple-500/10 rounded-full blur-3xl group-hover/ai:bg-purple-500/20 transition-all duration-500" />
-            <CardHeader className="relative">
-              <CardTitle className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-purple-500/10 group-hover/ai:bg-purple-500/20 transition-colors duration-300">
-                  <Sparkles className="h-5 w-5 text-purple-400 group-hover/ai:animate-sparkle" />
+        <TabsContent value="ai" className="space-y-3 sm:space-y-4 animate-tabSwitch">
+          <Card className="glow-interactive overflow-hidden group/ai min-h-[280px] sm:min-h-[340px] border-purple-500/15">
+            <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl group-hover/ai:bg-purple-500/20 transition-all duration-500" />
+            <CardHeader className="relative p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg">
+                <span className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/15 shadow-lg shadow-purple-500/10 group-hover/ai:shadow-purple-500/20 transition-all duration-300">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400 group-hover/ai:animate-sparkle" />
                 </span>
-                AI Study Plan Generator
+                <span className="bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">AI Study Plan Generator</span>
               </CardTitle>
-              <CardDescription>
-                Describe your exam, course, or goal and let AI create a structured plan
+              <CardDescription className="text-xs sm:text-sm mt-2 text-text-secondary">
+                Describe your goal and let AI create a personalized plan
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 relative">
-              <div className="group/input">
-                <Label htmlFor="ai-prompt">What do you want to study?</Label>
+            <CardContent className="space-y-4 sm:space-y-5 relative px-4 sm:px-6 pb-5 sm:pb-6">
+              <div className="input-focus-glow rounded-xl">
+                <Label htmlFor="ai-prompt" className="text-xs sm:text-sm font-medium text-text-secondary">What do you want to study?</Label>
                 <Textarea
                   id="ai-prompt"
-                  placeholder="e.g., GATE CS 2026, Learn React in 2 months, IELTS preparation..."
+                  placeholder="e.g., GATE CS 2026, Learn React in 2 months, Master Data Structures in 3 weeks..."
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
-                  rows={5}
-                  className="mt-2 min-h-[120px] transition-all duration-200 focus:ring-2 focus:ring-purple-500/50 hover:border-purple-400/50 resize-none"
+                  rows={4}
+                  className="mt-2 min-h-[120px] sm:min-h-[140px] transition-all duration-150 focus:ring-2 focus:ring-purple-500/50 hover:border-purple-400/40 resize-none text-sm leading-relaxed placeholder:text-text-secondary/50"
                 />
               </div>
               <AnimatedButton 
                 onClick={handleAIGenerate} 
                 disabled={isGenerating || !aiPrompt || isCreating}
                 variant="primary"
+                className="w-full btn-shine h-12 sm:h-11 text-sm sm:text-base font-medium"
               >
-                <Sparkles className="h-4 w-4" />
-                {isGenerating ? 'Generating...' : 'Generate Smart Plan'}
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+                {isGenerating ? 'Generating...' : 'Generate Plan'}
               </AnimatedButton>
               {topics.length > 0 && !isAiGenerated && (
-                <p className="text-xs text-muted-foreground mt-2 animate-fadeIn">
-                  💡 Tip: AI generation will replace your current topics
+                <p className="text-xs text-amber-400/80 mt-2 animate-fadeIn flex items-center gap-1.5 justify-center">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  AI will replace current topics
                 </p>
               )}
             </CardContent>
@@ -1145,43 +1155,46 @@ export default function NewPlanPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Submit Buttons */}
-      <Card className={`glow-interactive overflow-hidden transition-all duration-500 ${isAiGenerated && topics.length > 0 ? 'border-2 border-purple-500/50 shadow-lg shadow-purple-500/10' : ''}`}>
-        <CardContent className="pt-4 sm:pt-6 relative">
+      {/* Submit Buttons - Mobile Optimized */}
+      <Card className={`glow-interactive overflow-hidden transition-all duration-300 border-purple-500/15 ${isAiGenerated && topics.length > 0 ? 'border-2 border-purple-500/40 shadow-xl shadow-purple-500/10' : ''}`}>
+        <CardContent className="pt-4 sm:pt-6 pb-5 sm:pb-6 px-4 sm:px-6 relative">
           {isAiGenerated && topics.length > 0 && (
-            <div className="mb-4 p-3 sm:p-4 bg-purple-950/50 rounded-lg border border-purple-500/30 animate-fadeIn">
-              <p className="text-sm font-semibold text-purple-200 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 animate-pulse" />
-                Your AI-generated plan is ready!
+            <div className="mb-4 sm:mb-5 p-3.5 sm:p-4 bg-gradient-to-r from-purple-950/60 to-purple-900/40 rounded-xl border border-purple-500/30 animate-fadeIn">
+              <p className="text-sm sm:text-base font-semibold text-purple-100 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 animate-pulse flex-shrink-0" />
+                Your AI plan is ready!
               </p>
-              <p className="text-xs text-purple-400 mt-1">
-                Review the topics above. Make any changes, then tap "Create Plan".
+              <p className="text-xs sm:text-sm text-purple-300/80 mt-1">
+                Review topics above, then tap "Create Plan"
               </p>
             </div>
           )}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+          
+          {/* Mobile: Stack vertically with better touch targets */}
+          <div className="flex flex-col gap-3 sm:gap-4">
             <AnimatedButton 
               onClick={handleSubmit} 
               disabled={isCreating || !planData.title || !startDate || topics.length === 0}
               variant="primary"
               size="lg"
-              className="w-full sm:w-auto justify-center"
+              className="w-full justify-center h-14 sm:h-12 text-base sm:text-lg font-semibold btn-shine active:scale-[0.98] transition-transform"
             >
               {isCreating ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" />
                   Creating...
                 </>
               ) : isAiGenerated ? (
                 <>
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-5 w-5" />
                   Create AI Plan
                 </>
               ) : (
                 'Create Plan'
               )}
             </AnimatedButton>
-            <div className="flex gap-3">
+            
+            <div className="flex gap-2.5 sm:gap-3">
               {isAiGenerated && (
                 <Button 
                   variant="outline" 
@@ -1193,9 +1206,9 @@ export default function NewPlanPage() {
                   }} 
                   size="lg"
                   disabled={isCreating}
-                  className="flex-1 sm:flex-initial border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-400/50 transition-all duration-200 hover:scale-105 group/restart"
+                  className="flex-1 border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/15 hover:border-purple-400/50 transition-all duration-150 h-12 sm:h-11 text-sm active:scale-[0.98]"
                 >
-                  <Sparkles className="mr-2 h-4 w-4 group-hover/restart:animate-spin" />
+                  <Sparkles className="mr-2 h-4 w-4" />
                   Start Over
                 </Button>
               )}
@@ -1204,22 +1217,24 @@ export default function NewPlanPage() {
                 onClick={() => router.back()} 
                 size="lg" 
                 disabled={isCreating || isGenerating}
-                className="flex-1 sm:flex-initial hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-all duration-200"
+                className="flex-1 hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400 transition-all duration-150 h-12 sm:h-11 text-sm active:scale-[0.98]"
               >
                 Cancel
               </Button>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mt-4 pt-4 border-t border-border/50">
+          
+          {/* Stats Footer */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-4 mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-border/30">
             <p className="text-xs sm:text-sm text-text-secondary">
               <span className="text-red-400">*</span> Required fields
             </p>
             <div className="flex items-center gap-2 text-xs sm:text-sm">
-              <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
+              <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 font-medium animate-badgePop">
                 Topics: {topics.length}
               </span>
-              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">
-                Hours: <span className="font-bold">{calculateTotalHours().toFixed(1)}</span>
+              <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-300 font-medium animate-badgePop" style={{ animationDelay: '50ms' }}>
+                Hours: <span className="font-bold tabular-nums">{calculateTotalHours().toFixed(1)}</span>
               </span>
             </div>
           </div>
