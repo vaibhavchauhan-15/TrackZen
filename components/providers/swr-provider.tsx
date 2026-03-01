@@ -1,7 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { SWRConfig, Cache } from 'swr'
+import { SWRConfig } from 'swr'
 
 // Global fetcher for SWR
 const globalFetcher = async (url: string) => {
@@ -16,45 +16,44 @@ const globalFetcher = async (url: string) => {
   return res.json()
 }
 
-// Create a persistent cache provider using sessionStorage
-function sessionStorageProvider(): Map<string, any> {
-  if (typeof window === 'undefined') {
-    return new Map()
-  }
-  
-  // Initialize from sessionStorage
+// Create a cache provider that saves to sessionStorage but does NOT
+// load from it initially to prevent hydration mismatches
+function createCacheProvider() {
   const map = new Map<string, any>()
-  const stored = sessionStorage.getItem('swr-cache')
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored)
-      Object.entries(parsed).forEach(([key, value]) => {
-        map.set(key, value)
-      })
-    } catch {}
-  }
-
-  // Save to sessionStorage before unload
-  window.addEventListener('beforeunload', () => {
-    const data: Record<string, any> = {}
-    map.forEach((value, key) => {
-      // Only cache successful data, skip errors
-      if (value && !value.error) {
-        data[key] = value
+  
+  return () => {
+    // Set up save listener only on client
+    if (typeof window !== 'undefined') {
+      const saveToStorage = () => {
+        const data: Record<string, any> = {}
+        map.forEach((value, key) => {
+          // Only cache successful data, skip errors
+          if (value && !value.error) {
+            data[key] = value
+          }
+        })
+        try {
+          sessionStorage.setItem('swr-cache', JSON.stringify(data))
+        } catch {}
       }
-    })
-    sessionStorage.setItem('swr-cache', JSON.stringify(data))
-  })
-
-  return map
+      
+      // Save on page unload
+      window.addEventListener('beforeunload', saveToStorage)
+    }
+    
+    return map
+  }
 }
+
+// Create single cache instance to persist across renders
+const cacheProvider = createCacheProvider()
 
 export function SWRProvider({ children }: { children: ReactNode }) {
   return (
     <SWRConfig
       value={{
         fetcher: globalFetcher,
-        provider: sessionStorageProvider,
+        provider: cacheProvider,
         revalidateOnFocus: false,
         revalidateOnReconnect: true,
         dedupingInterval: 5000, // 5s deduplication

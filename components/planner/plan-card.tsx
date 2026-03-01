@@ -1,5 +1,6 @@
 'use client'
 
+import { forwardRef } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -26,7 +27,7 @@ const typeEmoji: Record<string, string> = {
   custom: '🎯',
 }
 
-export function PlanCard({ plan, index }: PlanCardProps) {
+export const PlanCard = forwardRef<HTMLDivElement, PlanCardProps>(function PlanCard({ plan, index }, ref) {
   const completion = plan.totalTopics > 0 
     ? Math.round((plan.completedTopics / plan.totalTopics) * 100) 
     : 0
@@ -34,6 +35,7 @@ export function PlanCard({ plan, index }: PlanCardProps) {
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08 }}
@@ -130,4 +132,4 @@ export function PlanCard({ plan, index }: PlanCardProps) {
       </Link>
     </motion.div>
   )
-}
+})
