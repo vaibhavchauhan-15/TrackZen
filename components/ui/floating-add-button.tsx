@@ -24,7 +24,7 @@ export function FloatingAddButton({
       title={title}
       className={cn(
         'group cursor-pointer outline-none',
-        'fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40',
+        'fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-40',
         className
       )}
       whileHover={{ rotate: 90 }}

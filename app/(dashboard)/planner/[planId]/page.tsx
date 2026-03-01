@@ -356,33 +356,33 @@ export default function PlanDetailPage() {
     : 0
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 pb-20 sm:pb-0">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
-      {/* Compact Header with Stats */}
+      {/* Compact Header with Stats - Mobile Optimized */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="space-y-3"
+        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="space-y-2 sm:space-y-3"
       >
         {/* Title Row */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <Button
               variant="outline"
               size="icon"
               onClick={() => router.push('/planner')}
-              className="h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0"
+              className="h-9 w-9 flex-shrink-0 active:scale-95 transition-transform"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-text-primary truncate">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h1 className="text-base sm:text-2xl font-bold text-text-primary truncate">
                 {plan.title}
               </h1>
-              <Badge className={`${getStatusBadgeColor(plan.status)} flex-shrink-0`}>
+              <Badge className={`${getStatusBadgeColor(plan.status)} flex-shrink-0 text-xs`}>
                 {plan.status}
               </Badge>
             </div>
@@ -390,7 +390,7 @@ export default function PlanDetailPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
+              <Button variant="outline" size="icon" className="h-9 w-9 active:scale-95 transition-transform">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -423,56 +423,56 @@ export default function PlanDetailPage() {
           </DropdownMenu>
         </div>
 
-        {/* Compact Stats and Plan Type */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-0 sm:px-4 lg:px-12">
-          <div className="flex items-center gap-2 text-sm text-text-secondary">
-            <BookOpen className="h-4 w-4" />
+        {/* Compact Stats and Plan Type - Mobile Optimized */}
+        <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-3 px-0 sm:px-4 lg:px-12">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-text-secondary">
+            <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>{plan.type.charAt(0).toUpperCase() + plan.type.slice(1)} Plan</span>
           </div>
           
-          {/* Compact Stats Row - Scrollable on mobile */}
-          <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+          {/* Compact Stats Row - Horizontal scroll on mobile */}
+          <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide -mx-1 px-1">
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-              className="flex items-center gap-2 flex-shrink-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.05, duration: 0.2 }}
+              className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0"
             >
-              <TrendingUp className="h-4 w-4 text-purple-500" />
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
               <div className="flex flex-col">
-                <span className="text-xs text-text-muted">Progress</span>
-                <span className="text-base sm:text-lg font-bold text-text-primary">{progressPercentage}%</span>
+                <span className="text-[10px] sm:text-xs text-text-muted">Progress</span>
+                <span className="text-sm sm:text-lg font-bold text-text-primary">{progressPercentage}%</span>
               </div>
             </motion.div>
 
-            <div className="h-8 w-px bg-border flex-shrink-0" />
+            <div className="h-6 sm:h-8 w-px bg-border flex-shrink-0" />
 
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-              className="flex items-center gap-2 flex-shrink-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.2 }}
+              className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0"
             >
-              <Calendar className="h-4 w-4 text-blue-500" />
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
               <div className="flex flex-col">
-                <span className="text-xs text-text-muted">Timeline</span>
+                <span className="text-[10px] sm:text-xs text-text-muted">Timeline</span>
                 <span className="text-xs sm:text-sm font-semibold text-text-primary whitespace-nowrap">
                   {plan.endDate ? new Date(plan.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Open'}
                 </span>
               </div>
             </motion.div>
 
-            <div className="h-8 w-px bg-border flex-shrink-0" />
+            <div className="h-6 sm:h-8 w-px bg-border flex-shrink-0" />
 
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.3 }}
-              className="flex items-center gap-2 flex-shrink-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15, duration: 0.2 }}
+              className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0"
             >
-              <Clock className="h-4 w-4 text-orange-500" />
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
               <div className="flex flex-col">
-                <span className="text-xs text-text-muted">Est. Hours</span>
+                <span className="text-[10px] sm:text-xs text-text-muted">Est. Hours</span>
                 <span className="text-xs sm:text-sm font-semibold text-text-primary">{plan.totalEstimatedHours}h</span>
               </div>
             </motion.div>
@@ -481,94 +481,106 @@ export default function PlanDetailPage() {
 
         {/* Compact Progress Bar */}
         <div className="px-0 sm:px-4 lg:px-12">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Progress value={progressPercentage} className="h-1.5 flex-1" />
-            <span className="text-xs text-text-muted whitespace-nowrap">
+            <span className="text-[10px] sm:text-xs text-text-muted whitespace-nowrap">
               {plan.completedTopics} / {plan.totalTopics} topics
             </span>
           </div>
         </div>
       </motion.div>
 
-      {/* Study Tracker Tabs - Mobile optimized */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto sm:h-12 bg-bg-surface/50 backdrop-blur-sm p-1 gap-1">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
+      {/* Study Tracker Tabs - Mobile Optimized with smooth transitions */}
+      <Tabs defaultValue="overview" className="space-y-3 sm:space-y-4">
+        <TabsList className="grid w-full grid-cols-4 h-10 sm:h-12 bg-bg-surface/60 backdrop-blur-md p-1 gap-0.5 sm:gap-1 rounded-xl sticky top-0 z-10">
+          <TabsTrigger 
+            value="overview" 
+            className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
+          >
             Overview
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
-            <span className="hidden sm:inline">Timeline </span>Calendar
+          <TabsTrigger 
+            value="timeline" 
+            className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
+          >
+            Calendar
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
-            <span className="hidden sm:inline">Study </span>Analytics
+          <TabsTrigger 
+            value="analytics" 
+            className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
+          >
+            Analytics
           </TabsTrigger>
-          <TabsTrigger value="topics" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-xs sm:text-sm py-2.5 sm:py-2">
+          <TabsTrigger 
+            value="topics" 
+            className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
+          >
             Topics
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4 mt-4">
-          {/* Enhanced Timeline Section */}
+        <TabsContent value="overview" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
+          {/* Enhanced Timeline Section - Mobile Optimized */}
           {analyticsLoading ? (
-            <Card>
-              <CardContent className="py-10 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                  <p className="text-text-secondary">Loading analytics data...</p>
+            <Card className="overflow-hidden">
+              <CardContent className="py-8 sm:py-10 text-center">
+                <div className="flex flex-col items-center gap-2 sm:gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-500"></div>
+                  <p className="text-text-secondary text-sm">Loading analytics data...</p>
                 </div>
               </CardContent>
             </Card>
           ) : analytics ? (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
+              transition={{ delay: 0.1, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Target className="h-5 w-5" />
-                    Timeline & Progress
+              <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20 overflow-hidden">
+                <CardHeader className="pb-2 sm:pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="truncate">Timeline & Progress</span>
                     {analytics.timeline.isOnTrack !== null && (
-                      <Badge variant={analytics.timeline.isOnTrack ? 'default' : 'destructive'}>
-                        {analytics.timeline.isOnTrack ? 'On Track' : 'Behind Schedule'}
+                      <Badge variant={analytics.timeline.isOnTrack ? 'default' : 'destructive'} className="ml-auto text-[10px] sm:text-xs">
+                        {analytics.timeline.isOnTrack ? 'On Track' : 'Behind'}
                       </Badge>
                     )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 sm:space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                    <div>
-                      <div className="text-xs text-text-secondary mb-1">Days Remaining</div>
-                      <div className="text-xl font-bold">
+                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
+                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Days Remaining</div>
+                      <div className="text-lg sm:text-xl font-bold">
                         {analytics.timeline.totalDaysAvailable || 'N/A'}
                       </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-text-secondary mb-1">Days Passed</div>
-                      <div className="text-xl font-bold">{analytics.timeline.daysPassed}</div>
+                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
+                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Days Passed</div>
+                      <div className="text-lg sm:text-xl font-bold">{analytics.timeline.daysPassed}</div>
                     </div>
-                    <div>
-                      <div className="text-xs text-text-secondary mb-1">Buffer Days</div>
-                      <div className="text-xl font-bold text-green-500">
+                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
+                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Buffer Days</div>
+                      <div className="text-lg sm:text-xl font-bold text-green-500">
                         {analytics.timeline.bufferDays || 'N/A'}
                       </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-text-secondary mb-1">Daily Target</div>
-                      <div className="text-xl font-bold text-purple-500">
+                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
+                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Daily Target</div>
+                      <div className="text-lg sm:text-xl font-bold text-purple-500">
                         {analytics.topics.dailyTarget?.toFixed(1) || 'N/A'}
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2 pt-2">
-                    <div className="flex justify-between text-sm">
+                  <div className="space-y-1.5 sm:space-y-2 pt-1 sm:pt-2">
+                    <div className="flex justify-between text-xs sm:text-sm">
                       <span>Overall Progress</span>
                       <span className="font-semibold">{analytics.timeline.progressPercentage}%</span>
                     </div>
-                    <Progress value={analytics.timeline.progressPercentage} className="h-2.5" />
+                    <Progress value={analytics.timeline.progressPercentage} className="h-2 sm:h-2.5" />
                     {analytics.timeline.expectedProgress && (
-                      <div className="text-xs text-text-secondary">
+                      <div className="text-[10px] sm:text-xs text-text-secondary">
                         Expected: {analytics.timeline.expectedProgress.toFixed(1)}%
                       </div>
                     )}
@@ -578,37 +590,37 @@ export default function PlanDetailPage() {
             </motion.div>
           ) : null}
 
-          {/* Quick Actions */}
+          {/* Quick Actions - Mobile Optimized */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
+            transition={{ delay: 0.15, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-                <CardDescription>Track your daily progress and manage study activities</CardDescription>
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Track your daily progress and manage study activities</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
-                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
-                    <Plus className="h-4 w-4" />
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
+                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 active:scale-95 transition-transform">
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-[10px] sm:text-xs text-center leading-tight">Log Hours</span>
                   </Button>
-                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
-                    <FileText className="h-4 w-4" />
+                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 active:scale-95 transition-transform">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-[10px] sm:text-xs text-center leading-tight">Mock Test</span>
                   </Button>
-                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
-                    <RotateCcw className="h-4 w-4" />
+                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 active:scale-95 transition-transform">
+                    <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-[10px] sm:text-xs text-center leading-tight">Revisions</span>
                   </Button>
-                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2">
-                    <BookMarked className="h-4 w-4" />
+                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 col-span-3 sm:col-span-1 active:scale-95 transition-transform">
+                    <BookMarked className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-[10px] sm:text-xs text-center leading-tight">Mistakes</span>
                   </Button>
-                  <Button variant="outline" className="h-14 sm:h-16 flex-col gap-1 sm:gap-1.5 p-2 col-span-3 sm:col-span-1">
-                    <BarChart3 className="h-4 w-4" />
+                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 col-span-3 sm:col-span-1 hidden sm:flex active:scale-95 transition-transform">
+                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-[10px] sm:text-xs text-center leading-tight">Weekly Review</span>
                   </Button>
                 </div>
@@ -617,12 +629,12 @@ export default function PlanDetailPage() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="timeline" className="space-y-4 mt-4">
+        <TabsContent value="timeline" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
           {/* Timeline Calendar */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <TimelineCalendar
               startDate={plan.startDate}
@@ -631,115 +643,115 @@ export default function PlanDetailPage() {
               planId={planId}
               dailyHours={plan.dailyHours}
               onTopicsUpdate={() => {
-                // TODO: Replace with your data refetch logic
                 console.log('Topics updated, need to refetch')
               }}
             />
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4 mt-4">
+        <TabsContent value="analytics" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
           {analyticsLoading ? (
-            <Card>
-              <CardContent className="py-10 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                  <p className="text-text-secondary">Loading analytics data...</p>
+            <Card className="overflow-hidden">
+              <CardContent className="py-8 sm:py-10 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-500"></div>
+                  <p className="text-text-secondary text-sm">Loading analytics...</p>
                 </div>
               </CardContent>
             </Card>
           ) : analyticsError ? (
-            <Card>
-              <CardContent className="py-10 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <AlertCircle className="h-12 w-12 text-red-500" />
-                  <p className="text-text-primary font-semibold">Failed to load analytics</p>
-                  <p className="text-text-secondary text-sm">Please try refreshing the page</p>
+            <Card className="overflow-hidden">
+              <CardContent className="py-8 sm:py-10 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500" />
+                  <p className="text-text-primary font-semibold text-sm">Failed to load analytics</p>
+                  <p className="text-text-secondary text-xs">Please try refreshing</p>
                 </div>
               </CardContent>
             </Card>
           ) : analytics ? (
-            <div className="space-y-4">
-              {/* Top Row - Priority Strategy Takes Full Width */}
+            <div className="space-y-3 sm:space-y-4">
+              {/* Priority Strategy - Mobile Compact Layout */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
               >
-                <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 border-purple-500/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Target className="h-5 w-5 text-purple-500" />
+                <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 border-purple-500/20 overflow-hidden">
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                      <Target className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
                       Priority Strategy
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <CardContent className="space-y-2 sm:space-y-3">
+                    {/* Priority Cards - Stacked on mobile */}
+                    <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3">
                       {/* High Priority */}
                       <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.1, duration: 0.3 }}
-                        className="p-3 rounded-lg bg-red-500/10 border border-red-500/20"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05, duration: 0.2 }}
+                        className="p-2.5 sm:p-3 rounded-lg bg-red-500/10 border border-red-500/20"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="destructive" className="text-xs">🔴 High</Badge>
-                          <span className="text-lg font-bold">{analytics.topics.byPriority.high.percentage}%</span>
+                        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                          <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 py-0.5">🔴 High</Badge>
+                          <span className="text-base sm:text-lg font-bold">{analytics.topics.byPriority.high.percentage}%</span>
                         </div>
-                        <Progress value={parseFloat(analytics.topics.byPriority.high.percentage)} className="h-1.5 mb-2" />
-                        <div className="text-xs text-text-secondary">
+                        <Progress value={parseFloat(analytics.topics.byPriority.high.percentage)} className="h-1 sm:h-1.5 mb-1.5" />
+                        <div className="text-[10px] sm:text-xs text-text-secondary">
                           {analytics.topics.byPriority.high.completed} / {analytics.topics.byPriority.high.total} completed
                         </div>
-                        <div className="text-xs text-text-muted mt-1">First 50% time</div>
+                        <div className="text-[10px] text-text-muted mt-0.5 hidden sm:block">First 50% time</div>
                       </motion.div>
 
                       {/* Medium Priority */}
                       <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2, duration: 0.3 }}
-                        className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1, duration: 0.2 }}
+                        className="p-2.5 sm:p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="default" className="text-xs">🟡 Medium</Badge>
-                          <span className="text-lg font-bold">{analytics.topics.byPriority.medium.percentage}%</span>
+                        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                          <Badge variant="default" className="text-[10px] sm:text-xs px-1.5 py-0.5">🟡 Medium</Badge>
+                          <span className="text-base sm:text-lg font-bold">{analytics.topics.byPriority.medium.percentage}%</span>
                         </div>
-                        <Progress value={parseFloat(analytics.topics.byPriority.medium.percentage)} className="h-1.5 mb-2" />
-                        <div className="text-xs text-text-secondary">
+                        <Progress value={parseFloat(analytics.topics.byPriority.medium.percentage)} className="h-1 sm:h-1.5 mb-1.5" />
+                        <div className="text-[10px] sm:text-xs text-text-secondary">
                           {analytics.topics.byPriority.medium.completed} / {analytics.topics.byPriority.medium.total} completed
                         </div>
-                        <div className="text-xs text-text-muted mt-1">Middle phase</div>
+                        <div className="text-[10px] text-text-muted mt-0.5 hidden sm:block">Middle phase</div>
                       </motion.div>
 
                       {/* Low Priority */}
                       <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3, duration: 0.3 }}
-                        className="p-3 rounded-lg bg-green-500/10 border border-green-500/20"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.15, duration: 0.2 }}
+                        className="p-2.5 sm:p-3 rounded-lg bg-green-500/10 border border-green-500/20"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="secondary" className="text-xs">🟢 Low</Badge>
-                          <span className="text-lg font-bold">{analytics.topics.byPriority.low.percentage}%</span>
+                        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                          <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0.5">🟢 Low</Badge>
+                          <span className="text-base sm:text-lg font-bold">{analytics.topics.byPriority.low.percentage}%</span>
                         </div>
-                        <Progress value={parseFloat(analytics.topics.byPriority.low.percentage)} className="h-1.5 mb-2" />
-                        <div className="text-xs text-text-secondary">
+                        <Progress value={parseFloat(analytics.topics.byPriority.low.percentage)} className="h-1 sm:h-1.5 mb-1.5" />
+                        <div className="text-[10px] sm:text-xs text-text-secondary">
                           {analytics.topics.byPriority.low.completed} / {analytics.topics.byPriority.low.total} completed
                         </div>
-                        <div className="text-xs text-text-muted mt-1">Final phase</div>
+                        <div className="text-[10px] text-text-muted mt-0.5 hidden sm:block">Final phase</div>
                       </motion.div>
                     </div>
                     
                     {analytics.topics.overdue > 0 && (
                       <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.3 }}
-                        className="mt-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2, duration: 0.2 }}
+                        className="p-2 sm:p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg"
                       >
-                        <p className="text-xs font-semibold text-red-600 flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4" />
-                          {analytics.topics.overdue} overdue topics - Cover them in the next 2 days!
+                        <p className="text-[10px] sm:text-xs font-semibold text-red-500 flex items-center gap-1.5 sm:gap-2">
+                          <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                          {analytics.topics.overdue} overdue - Cover soon!
                         </p>
                       </motion.div>
                     )}
@@ -747,127 +759,115 @@ export default function PlanDetailPage() {
                 </Card>
               </motion.div>
 
-              {/* Second Row - Study Hours, Mock Tests, Topics Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Study Hours */}
+              {/* Second Row - 2-column on mobile, 3 on desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                {/* Study Hours - Compact */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1, duration: 0.3 }}
+                  transition={{ delay: 0.05, duration: 0.2 }}
+                  className="col-span-1"
                 >
-                  <Card className="h-full">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Clock className="h-4 w-4 text-blue-500" />
-                        Study Hours (30d)
+                  <Card className="h-full overflow-hidden">
+                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
+                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+                        <span className="truncate">Hours (30d)</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 bg-bg-surface rounded text-center">
-                          <div className="text-xs text-text-muted">Planned</div>
-                          <div className="text-lg font-bold">{analytics.studyHours.last30Days.planned.toFixed(1)}h</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
+                      <div className="grid grid-cols-2 gap-1 sm:gap-2">
+                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Plan</div>
+                          <div className="text-sm sm:text-lg font-bold">{analytics.studyHours.last30Days.planned.toFixed(0)}h</div>
                         </div>
-                        <div className="p-2 bg-bg-surface rounded text-center">
-                          <div className="text-xs text-text-muted">Actual</div>
-                          <div className="text-lg font-bold text-blue-500">{analytics.studyHours.last30Days.actual.toFixed(1)}h</div>
+                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
+                          <div className="text-sm sm:text-lg font-bold text-blue-500">{analytics.studyHours.last30Days.actual.toFixed(0)}h</div>
                         </div>
                       </div>
-                      <div className="p-2 bg-bg-surface rounded">
+                      <div className="p-1.5 sm:p-2 bg-bg-surface rounded hidden sm:block">
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-text-muted">Avg/Day</span>
                           <span className="font-semibold">{analytics.studyHours.last30Days.average.toFixed(1)}h</span>
                         </div>
                       </div>
-                      {analytics.studyHours.last30Days.adherence && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-text-muted">Adherence</span>
-                            <span className="font-bold text-green-600">{analytics.studyHours.last30Days.adherence.toFixed(1)}%</span>
-                          </div>
-                          <Progress value={analytics.studyHours.last30Days.adherence} className="h-1.5" />
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
 
-                {/* Mock Tests */}
+                {/* Mock Tests - Compact */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  transition={{ delay: 0.1, duration: 0.2 }}
+                  className="col-span-1"
                 >
-                  <Card className="h-full">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <FileText className="h-4 w-4 text-purple-500" />
-                        Mock Tests
+                  <Card className="h-full overflow-hidden">
+                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
+                        <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
+                        <span className="truncate">Mock Tests</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="p-2 bg-bg-surface rounded text-center">
-                          <div className="text-xs text-text-muted">Total</div>
-                          <div className="text-lg font-bold">{analytics.mockTests.total}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
+                      <div className="grid grid-cols-2 gap-1 sm:gap-2">
+                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
+                          <div className="text-sm sm:text-lg font-bold">{analytics.mockTests.total}</div>
                         </div>
-                        <div className="p-2 bg-green-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Done</div>
-                          <div className="text-lg font-bold text-green-600">{analytics.mockTests.completed}</div>
-                        </div>
-                        <div className="p-2 bg-blue-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Next</div>
-                          <div className="text-lg font-bold text-blue-600">{analytics.mockTests.scheduled}</div>
+                        <div className="p-1.5 sm:p-2 bg-green-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
+                          <div className="text-sm sm:text-lg font-bold text-green-500">{analytics.mockTests.completed}</div>
                         </div>
                       </div>
                       {analytics.mockTests.averageScore !== null && (
-                        <div className="p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20 text-center">
-                          <div className="text-xs text-text-muted mb-1">Average Score</div>
-                          <div className="text-2xl font-bold text-green-600">{analytics.mockTests.averageScore}%</div>
+                        <div className="p-1.5 sm:p-2 bg-purple-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Avg Score</div>
+                          <div className="text-base sm:text-xl font-bold text-purple-500">{analytics.mockTests.averageScore}%</div>
                         </div>
                       )}
                     </CardContent>
                   </Card>
                 </motion.div>
 
-                {/* Topics Overview */}
+                {/* Topics Overview - Full width on mobile */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
+                  transition={{ delay: 0.15, duration: 0.2 }}
+                  className="col-span-2 sm:col-span-1"
                 >
-                  <Card className="h-full bg-gradient-to-br from-purple-500/5 to-pink-500/5">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <BarChart3 className="h-4 w-4 text-purple-500" />
+                  <Card className="h-full bg-gradient-to-br from-purple-500/5 to-pink-500/5 overflow-hidden">
+                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
+                        <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
                         Topics Overview
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 bg-bg-surface/50 rounded text-center">
-                          <div className="text-xs text-text-muted">Total</div>
-                          <div className="text-lg font-bold">{analytics.topics.total}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
+                      <div className="grid grid-cols-4 sm:grid-cols-2 gap-1 sm:gap-2">
+                        <div className="p-1.5 sm:p-2 bg-bg-surface/50 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
+                          <div className="text-sm sm:text-lg font-bold">{analytics.topics.total}</div>
                         </div>
-                        <div className="p-2 bg-green-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Done</div>
-                          <div className="text-lg font-bold text-green-600">{analytics.topics.completed}</div>
+                        <div className="p-1.5 sm:p-2 bg-green-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
+                          <div className="text-sm sm:text-lg font-bold text-green-500">{analytics.topics.completed}</div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 bg-blue-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Active</div>
-                          <div className="text-lg font-bold text-blue-600">{analytics.topics.inProgress}</div>
+                        <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Active</div>
+                          <div className="text-sm sm:text-lg font-bold text-blue-500">{analytics.topics.inProgress}</div>
                         </div>
-                        <div className="p-2 bg-orange-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Left</div>
-                          <div className="text-lg font-bold text-orange-600">{analytics.topics.remaining}</div>
+                        <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Left</div>
+                          <div className="text-sm sm:text-lg font-bold text-orange-500">{analytics.topics.remaining}</div>
                         </div>
                       </div>
                       {analytics.topics.dailyTarget !== null && (
-                        <div className="p-2 bg-purple-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Daily Target</div>
-                          <div className="text-base font-bold text-purple-600">{analytics.topics.dailyTarget.toFixed(1)} topics/day</div>
+                        <div className="p-1.5 sm:p-2 mt-1.5 sm:mt-2 bg-purple-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Daily Target</div>
+                          <div className="text-xs sm:text-base font-bold text-purple-500">{analytics.topics.dailyTarget.toFixed(1)}/day</div>
                         </div>
                       )}
                     </CardContent>
@@ -875,110 +875,87 @@ export default function PlanDetailPage() {
                 </motion.div>
               </div>
 
-              {/* Third Row - Revision & Mistakes */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Revision System */}
+              {/* Third Row - Revision & Mistakes - Compact on mobile */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-4">
+                {/* Revision System - Compact */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15, duration: 0.3 }}
+                  transition={{ delay: 0.2, duration: 0.2 }}
                 >
-                  <Card className="h-full">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <RotateCcw className="h-4 w-4 text-blue-500" />
-                        3-Stage Revision System
+                  <Card className="h-full overflow-hidden">
+                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
+                        <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+                        <span className="truncate">Revisions</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="p-2 bg-bg-surface rounded text-center">
-                          <div className="text-xs text-text-muted">Total</div>
-                          <div className="text-lg font-bold">{analytics.revision.total}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
+                      <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
+                          <div className="text-sm sm:text-lg font-bold">{analytics.revision.total}</div>
                         </div>
-                        <div className="p-2 bg-blue-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Pending</div>
-                          <div className="text-lg font-bold text-blue-600">{analytics.revision.pending}</div>
+                        <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Due</div>
+                          <div className="text-sm sm:text-lg font-bold text-blue-500">{analytics.revision.pending}</div>
                         </div>
-                        <div className="p-2 bg-green-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Done</div>
-                          <div className="text-lg font-bold text-green-600">{analytics.revision.completed}</div>
+                        <div className="p-1.5 sm:p-2 bg-green-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
+                          <div className="text-sm sm:text-lg font-bold text-green-500">{analytics.revision.completed}</div>
                         </div>
                       </div>
                       {analytics.revision.overdueRevisions > 0 && (
-                        <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                          <p className="text-xs font-semibold text-red-600 flex items-center gap-2">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            {analytics.revision.overdueRevisions} overdue revisions
+                        <div className="p-1.5 sm:p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                          <p className="text-[10px] sm:text-xs font-semibold text-red-500 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {analytics.revision.overdueRevisions} overdue
                           </p>
                         </div>
                       )}
-                      <div className="p-2 bg-purple-500/5 rounded-lg">
-                        <div className="text-xs font-semibold mb-1.5">Revision Formula:</div>
-                        <div className="space-y-0.5 text-xs text-text-secondary">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs">1️⃣</span>
-                            <span>Within 24 hours</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs">2️⃣</span>
-                            <span>After 7 days</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs">3️⃣</span>
-                            <span>After 30 days</span>
-                          </div>
-                        </div>
-                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
 
-                {/* Mistake Notebook */}
+                {/* Mistake Notebook - Compact */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
+                  transition={{ delay: 0.25, duration: 0.2 }}
                 >
-                  <Card className="h-full">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <BookMarked className="h-4 w-4 text-orange-500" />
-                        Mistake Notebook
+                  <Card className="h-full overflow-hidden">
+                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
+                        <BookMarked className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
+                        <span className="truncate">Mistakes</span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 bg-bg-surface rounded text-center">
-                          <div className="text-xs text-text-muted">Total</div>
-                          <div className="text-lg font-bold">{analytics.mistakes.total}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
+                      <div className="grid grid-cols-2 gap-1 sm:gap-2">
+                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
+                          <div className="text-sm sm:text-lg font-bold">{analytics.mistakes.total}</div>
                         </div>
-                        <div className="p-2 bg-orange-500/10 rounded text-center">
-                          <div className="text-xs text-text-muted">Unresolved</div>
-                          <div className="text-lg font-bold text-orange-600">{analytics.mistakes.unresolved}</div>
+                        <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded text-center">
+                          <div className="text-[9px] sm:text-xs text-text-muted">Open</div>
+                          <div className="text-sm sm:text-lg font-bold text-orange-500">{analytics.mistakes.unresolved}</div>
                         </div>
                       </div>
                       {Object.keys(analytics.mistakes.byCategory).length > 0 ? (
-                        <div className="space-y-1.5">
-                          <div className="text-xs font-semibold text-text-secondary">By Category</div>
-                          <div className="max-h-[120px] overflow-y-auto space-y-1 pr-1">
-                            {Object.entries(analytics.mistakes.byCategory).map(([category, count]) => (
-                              <motion.div 
-                                key={category}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="flex justify-between items-center text-xs p-2 bg-bg-surface rounded"
-                              >
-                                <span className="truncate">{category}</span>
-                                <Badge variant="outline" className="text-xs ml-2">{String(count)}</Badge>
-                              </motion.div>
-                            ))}
-                          </div>
+                        <div className="max-h-16 sm:max-h-24 overflow-y-auto scrollbar-hide space-y-0.5 sm:space-y-1">
+                          {Object.entries(analytics.mistakes.byCategory).slice(0, 3).map(([category, count]) => (
+                            <div 
+                              key={category}
+                              className="flex justify-between items-center text-[10px] sm:text-xs p-1.5 sm:p-2 bg-bg-surface rounded"
+                            >
+                              <span className="truncate">{category}</span>
+                              <Badge variant="outline" className="text-[9px] sm:text-xs ml-1">{String(count)}</Badge>
+                            </div>
+                          ))}
                         </div>
                       ) : (
-                        <div className="p-4 text-center text-xs text-text-muted">
-                          No mistakes recorded yet
+                        <div className="py-2 sm:py-3 text-center text-[10px] sm:text-xs text-text-muted">
+                          No mistakes yet
                         </div>
                       )}
                     </CardContent>
@@ -986,36 +963,37 @@ export default function PlanDetailPage() {
                 </motion.div>
               </div>
 
-              {/* Bottom Row - Success Blueprint */}
+              {/* Success Blueprint - Hidden on mobile for space */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
+                transition={{ delay: 0.3, duration: 0.2 }}
+                className="hidden sm:block"
               >
-                <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
+                <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20 overflow-hidden">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base">
                       🔥 Success Blueprint
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
                       {[
-                        'Finish High priority early',
-                        'Track hours daily',
+                        'High priority first',
+                        'Track daily',
                         'Revise weekly',
-                        'Analyse mocks deeply',
-                        'Maintain buffer days',
-                        'Never skip consistency'
+                        'Mock analysis',
+                        'Buffer days',
+                        'Be consistent'
                       ].map((tip, index) => (
                         <motion.div
                           key={tip}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.4 + index * 0.05, duration: 0.2 }}
-                          className="flex items-center gap-1.5 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                          transition={{ delay: 0.35 + index * 0.03, duration: 0.15 }}
+                          className="flex items-center gap-1.5 p-2 bg-white/5 rounded-lg"
                         >
-                          <span className="text-green-500 text-sm flex-shrink-0">✓</span>
+                          <span className="text-green-500 text-xs">✓</span>
                           <span className="text-xs leading-tight">{tip}</span>
                         </motion.div>
                       ))}
@@ -1025,240 +1003,393 @@ export default function PlanDetailPage() {
               </motion.div>
             </div>
           ) : (
-            <Card>
-              <CardContent className="py-10 text-center text-text-secondary">
+            <Card className="overflow-hidden">
+              <CardContent className="py-8 text-center text-text-secondary text-sm">
                 No analytics data available
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="topics" className="space-y-4 mt-4">
-          {/* Topics List - Two Column Layout */}
+        <TabsContent value="topics" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
+          {/* Topics List - Mobile-first layout with inline subtopics expansion */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.2 }}
           >
             {plan.topics.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-text-secondary">
-                  <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No topics found for this plan</p>
+              <Card className="overflow-hidden">
+                <CardContent className="py-10 text-center text-text-secondary">
+                  <Target className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">No topics found for this plan</p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-[400px] lg:h-[calc(100vh-280px)] lg:min-h-[500px]">
-                {/* Left Column - Topics List */}
-                <Card className="lg:col-span-2 overflow-hidden flex flex-col max-h-[350px] lg:max-h-none">
-                  <CardHeader className="pb-3 flex-shrink-0">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Target className="h-5 w-5" />
-                      Topics ({plan.completedTopics}/{plan.totalTopics})
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Click a topic to view subtopics
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1 overflow-y-auto p-2 space-y-1">
-                    {plan.topics.map((topic: any, index: number) => {
-                      const hasSubtopics = topic.subtopics && topic.subtopics.length > 0
-                      const isSelected = selectedTopicId === topic.id
-                      const completedSubtopics = hasSubtopics 
-                        ? topic.subtopics.filter((st: any) => st.status === 'completed').length 
-                        : 0
-                      
-                      return (
-                        <motion.div
-                          key={topic.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.03, duration: 0.2 }}
-                        >
-                          <div
-                            className={`
-                              relative p-3 rounded-lg cursor-pointer transition-all duration-200
-                              ${isSelected 
-                                ? 'bg-purple-500/20 border-2 border-purple-500 shadow-md' 
-                                : 'border border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
-                              }
-                            `}
-                            onClick={() => hasSubtopics && setSelectedTopicId(topic.id)}
-                          >
-                            {/* Status Indicator */}
-                            <div className="flex items-start gap-2">
-                              <AnimatedCheckbox
-                                checked={topic.status === 'completed'}
-                                onChange={() => {
-                                  updateTopicStatus(topic.id, topic.status, topic.title)
-                                }}
-                                variant="green"
-                                className="mt-0.5 flex-shrink-0"
-                              />
-
-                              <div className="flex-1 min-w-0">
-                                <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-purple-300' : 'text-text-primary'}`}>
-                                  {topic.title}
-                                </h4>
-                                
-                                <div className="flex items-center gap-2 mt-1 text-xs text-text-secondary">
-                                  {topic.estimatedHours > 0 && (
-                                    <span className="flex items-center gap-1">
-                                      <Clock className="h-3 w-3" />
-                                      {topic.estimatedHours}h
-                                    </span>
-                                  )}
-                                  {hasSubtopics && (
-                                    <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                      {completedSubtopics}/{topic.subtopics.length}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-
-                              {hasSubtopics && (
-                                <ChevronRight 
-                                  className={`h-4 w-4 flex-shrink-0 transition-all duration-200 ${
-                                    isSelected ? 'rotate-90 text-purple-400' : 'text-text-muted'
-                                  }`} 
-                                />
-                              )}
-                            </div>
-
-                            {/* Progress Bar for topics with subtopics */}
-                            {hasSubtopics && (
-                              <div className="mt-2">
-                                <Progress 
-                                  value={(completedSubtopics / topic.subtopics.length) * 100} 
-                                  className="h-1" 
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      )
-                    })}
-                  </CardContent>
-                </Card>
-
-                {/* Right Column - Subtopics */}
-                <Card className="lg:col-span-3 overflow-hidden flex flex-col min-h-[300px] lg:min-h-0">
-                  <AnimatePresence mode="wait">
-                    {selectedTopicId ? (() => {
-                      const selectedTopic = plan.topics.find((t: any) => t.id === selectedTopicId)
-                      
-                      if (!selectedTopic || !selectedTopic.subtopics || selectedTopic.subtopics.length === 0) {
+              <>
+                {/* Mobile View - Single column with inline subtopics */}
+                <div className="sm:hidden space-y-2">
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-2 p-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Target className="h-4 w-4" />
+                        Topics ({plan.completedTopics}/{plan.totalTopics})
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">
+                        Click a topic to view subtopics
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-2 space-y-1.5">
+                      {plan.topics.map((topic: any, index: number) => {
+                        const hasSubtopics = topic.subtopics && topic.subtopics.length > 0
+                        const isExpanded = expandedTopics.has(topic.id)
+                        const completedSubtopics = hasSubtopics 
+                          ? topic.subtopics.filter((st: any) => st.status === 'completed').length 
+                          : 0
+                        
                         return (
                           <motion.div
-                            key="no-subtopics"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
-                            className="flex-1 flex items-center justify-center p-8"
+                            key={topic.id}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.02, duration: 0.15 }}
+                            className="overflow-hidden"
                           >
-                            <div className="text-center text-text-secondary">
-                              <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                              <p className="text-sm">No subtopics for this topic</p>
-                            </div>
-                          </motion.div>
-                        )
-                      }
-
-                      return (
-                        <motion.div
-                          key={selectedTopic.id}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.3 }}
-                          className="flex flex-col h-full"
-                        >
-                          <CardHeader className="pb-3 flex-shrink-0 border-b border-border">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                  <BookOpen className="h-5 w-5 flex-shrink-0 text-purple-500" />
-                                  <span className="truncate">{selectedTopic.title}</span>
-                                </CardTitle>
-                                <CardDescription className="text-xs mt-1 flex items-center gap-3">
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {selectedTopic.estimatedHours}h total
-                                  </span>
-                                  <span>
-                                    {selectedTopic.subtopics.filter((st: any) => st.status === 'completed').length}/{selectedTopic.subtopics.length} completed
-                                  </span>
-                                </CardDescription>
-                              </div>
-                              <Badge className={selectedTopic.status === 'completed' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-500'}>
-                                {selectedTopic.status === 'completed' ? 'completed' : 'pending'}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          
-                          <CardContent className="flex-1 overflow-y-auto p-3 space-y-2">
-                            {selectedTopic.subtopics.map((subtopic: any, subIndex: number) => (
-                              <motion.div
-                                key={subtopic.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: subIndex * 0.04, duration: 0.2 }}
-                                className={`
-                                  p-3 rounded-lg border transition-all duration-200
-                                  ${subtopic.status === 'completed' 
-                                    ? 'bg-green-500/10 border-green-500/30' 
-                                    : 'border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
-                                  }
-                                `}
-                              >
-                                <div className="flex items-start gap-3">
+                            {/* Main Topic Card */}
+                            <div
+                              className={`
+                                p-2.5 rounded-lg transition-all duration-150 active:scale-[0.98]
+                                ${isExpanded 
+                                  ? 'bg-purple-500/20 border border-purple-500' 
+                                  : 'border border-border hover:border-purple-500/50'
+                                }
+                              `}
+                              onClick={() => hasSubtopics && toggleTopic(topic.id)}
+                            >
+                              <div className="flex items-start gap-2">
+                                <div onClick={(e) => e.stopPropagation()}>
                                   <AnimatedCheckbox
-                                    checked={subtopic.status === 'completed'}
+                                    checked={topic.status === 'completed'}
                                     onChange={() => {
-                                      updateTopicStatus(subtopic.id, subtopic.status, subtopic.title)
+                                      updateTopicStatus(topic.id, topic.status, topic.title)
                                     }}
                                     variant="green"
                                     className="mt-0.5 flex-shrink-0"
                                   />
+                                </div>
 
-                                  <div className="flex-1 min-w-0">
-                                    <h5 className={`text-sm font-medium ${
-                                      subtopic.status === 'completed' ? 'line-through text-text-secondary' : 'text-text-primary'
-                                    }`}>
-                                      {subtopic.title}
-                                    </h5>
-                                    {subtopic.estimatedHours > 0 && (
-                                      <p className="text-xs text-text-secondary flex items-center gap-1 mt-1">
-                                        <Clock className="h-3 w-3" />
-                                        {subtopic.estimatedHours}h
-                                      </p>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className={`text-xs font-medium ${topic.status === 'completed' ? 'line-through text-text-muted' : 'text-text-primary'}`}>
+                                    {topic.title}
+                                  </h4>
+                                  
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {topic.estimatedHours > 0 && (
+                                      <span className="flex items-center gap-0.5 text-[10px] text-text-secondary">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {topic.estimatedHours}h
+                                      </span>
+                                    )}
+                                    {hasSubtopics && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                                        {completedSubtopics}/{topic.subtopics.length}
+                                      </Badge>
                                     )}
                                   </div>
                                 </div>
-                              </motion.div>
-                            ))}
-                          </CardContent>
+
+                                {hasSubtopics && (
+                                  <ChevronDown 
+                                    className={`h-4 w-4 flex-shrink-0 transition-transform duration-200 text-text-muted ${
+                                      isExpanded ? 'rotate-180 text-purple-400' : ''
+                                    }`} 
+                                  />
+                                )}
+                              </div>
+
+                              {/* Progress Bar */}
+                              {hasSubtopics && (
+                                <div className="mt-2">
+                                  <Progress 
+                                    value={(completedSubtopics / topic.subtopics.length) * 100} 
+                                    className="h-1" 
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Inline Subtopics Expansion - Mobile */}
+                            <AnimatePresence>
+                              {isExpanded && hasSubtopics && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="ml-4 mt-1.5 space-y-1 border-l-2 border-purple-500/30 pl-3 py-1">
+                                    {topic.subtopics.map((subtopic: any, subIndex: number) => (
+                                      <motion.div
+                                        key={subtopic.id}
+                                        initial={{ opacity: 0, x: -5 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: subIndex * 0.03, duration: 0.15 }}
+                                        className={`
+                                          p-2 rounded-md transition-all duration-150 active:scale-[0.98]
+                                          ${subtopic.status === 'completed' 
+                                            ? 'bg-green-500/10 border border-green-500/20' 
+                                            : 'bg-bg-surface/50 border border-border'
+                                          }
+                                        `}
+                                      >
+                                        <div className="flex items-start gap-2">
+                                          <AnimatedCheckbox
+                                            checked={subtopic.status === 'completed'}
+                                            onChange={() => {
+                                              updateTopicStatus(subtopic.id, subtopic.status, subtopic.title)
+                                            }}
+                                            variant="green"
+                                            className="mt-0.5 flex-shrink-0"
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <h5 className={`text-[11px] font-medium ${
+                                              subtopic.status === 'completed' ? 'line-through text-text-muted' : 'text-text-primary'
+                                            }`}>
+                                              {subtopic.title}
+                                            </h5>
+                                            {subtopic.estimatedHours > 0 && (
+                                              <p className="text-[9px] text-text-secondary flex items-center gap-0.5 mt-0.5">
+                                                <Clock className="h-2.5 w-2.5" />
+                                                {subtopic.estimatedHours}h
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </motion.div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                        )
+                      })}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Desktop View - Two column layout */}
+                <div className="hidden sm:grid sm:grid-cols-1 lg:grid-cols-5 gap-4 min-h-[400px] lg:h-[calc(100vh-280px)] lg:min-h-[500px]">
+                  {/* Left Column - Topics List */}
+                  <Card className="lg:col-span-2 overflow-hidden flex flex-col">
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Target className="h-5 w-5" />
+                        Topics ({plan.completedTopics}/{plan.totalTopics})
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Click a topic to view subtopics
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
+                      {plan.topics.map((topic: any, index: number) => {
+                        const hasSubtopics = topic.subtopics && topic.subtopics.length > 0
+                        const isSelected = selectedTopicId === topic.id
+                        const completedSubtopics = hasSubtopics 
+                          ? topic.subtopics.filter((st: any) => st.status === 'completed').length 
+                          : 0
+                        
+                        return (
+                          <motion.div
+                            key={topic.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.02, duration: 0.15 }}
+                          >
+                            <div
+                              className={`
+                                relative p-3 rounded-lg cursor-pointer transition-all duration-150
+                                ${isSelected 
+                                  ? 'bg-purple-500/20 border-2 border-purple-500 shadow-md' 
+                                  : 'border border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
+                                }
+                              `}
+                              onClick={() => hasSubtopics && setSelectedTopicId(topic.id)}
+                            >
+                              <div className="flex items-start gap-2">
+                                <AnimatedCheckbox
+                                  checked={topic.status === 'completed'}
+                                  onChange={() => {
+                                    updateTopicStatus(topic.id, topic.status, topic.title)
+                                  }}
+                                  variant="green"
+                                  className="mt-0.5 flex-shrink-0"
+                                />
+
+                                <div className="flex-1 min-w-0">
+                                  <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-purple-300' : 'text-text-primary'}`}>
+                                    {topic.title}
+                                  </h4>
+                                  
+                                  <div className="flex items-center gap-2 mt-1 text-xs text-text-secondary">
+                                    {topic.estimatedHours > 0 && (
+                                      <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {topic.estimatedHours}h
+                                      </span>
+                                    )}
+                                    {hasSubtopics && (
+                                      <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                        {completedSubtopics}/{topic.subtopics.length}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {hasSubtopics && (
+                                  <ChevronRight 
+                                    className={`h-4 w-4 flex-shrink-0 transition-all duration-200 ${
+                                      isSelected ? 'rotate-90 text-purple-400' : 'text-text-muted'
+                                    }`} 
+                                  />
+                                )}
+                              </div>
+
+                              {hasSubtopics && (
+                                <div className="mt-2">
+                                  <Progress 
+                                    value={(completedSubtopics / topic.subtopics.length) * 100} 
+                                    className="h-1" 
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
+                    </CardContent>
+                  </Card>
+
+                  {/* Right Column - Subtopics */}
+                  <Card className="lg:col-span-3 overflow-hidden flex flex-col min-h-[300px] lg:min-h-0">
+                    <AnimatePresence mode="wait">
+                      {selectedTopicId ? (() => {
+                        const selectedTopic = plan.topics.find((t: any) => t.id === selectedTopicId)
+                        
+                        if (!selectedTopic || !selectedTopic.subtopics || selectedTopic.subtopics.length === 0) {
+                          return (
+                            <motion.div
+                              key="no-subtopics"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex-1 flex items-center justify-center p-8"
+                            >
+                              <div className="text-center text-text-secondary">
+                                <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <p className="text-sm">No subtopics for this topic</p>
+                              </div>
+                            </motion.div>
+                          )
+                        }
+
+                        return (
+                          <motion.div
+                            key={selectedTopic.id}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.2 }}
+                            className="flex flex-col h-full"
+                          >
+                            <CardHeader className="pb-3 flex-shrink-0 border-b border-border">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="flex items-center gap-2 text-lg">
+                                    <BookOpen className="h-5 w-5 flex-shrink-0 text-purple-500" />
+                                    <span className="truncate">{selectedTopic.title}</span>
+                                  </CardTitle>
+                                  <CardDescription className="text-xs mt-1 flex items-center gap-3">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {selectedTopic.estimatedHours}h total
+                                    </span>
+                                    <span>
+                                      {selectedTopic.subtopics.filter((st: any) => st.status === 'completed').length}/{selectedTopic.subtopics.length} completed
+                                    </span>
+                                  </CardDescription>
+                                </div>
+                                <Badge className={selectedTopic.status === 'completed' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-500'}>
+                                  {selectedTopic.status === 'completed' ? 'completed' : 'pending'}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            
+                            <CardContent className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+                              {selectedTopic.subtopics.map((subtopic: any, subIndex: number) => (
+                                <motion.div
+                                  key={subtopic.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: subIndex * 0.03, duration: 0.15 }}
+                                  className={`
+                                    p-3 rounded-lg border transition-all duration-150
+                                    ${subtopic.status === 'completed' 
+                                      ? 'bg-green-500/10 border-green-500/30' 
+                                      : 'border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
+                                    }
+                                  `}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <AnimatedCheckbox
+                                      checked={subtopic.status === 'completed'}
+                                      onChange={() => {
+                                        updateTopicStatus(subtopic.id, subtopic.status, subtopic.title)
+                                      }}
+                                      variant="green"
+                                      className="mt-0.5 flex-shrink-0"
+                                    />
+
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className={`text-sm font-medium ${
+                                        subtopic.status === 'completed' ? 'line-through text-text-secondary' : 'text-text-primary'
+                                      }`}>
+                                        {subtopic.title}
+                                      </h5>
+                                      {subtopic.estimatedHours > 0 && (
+                                        <p className="text-xs text-text-secondary flex items-center gap-1 mt-1">
+                                          <Clock className="h-3 w-3" />
+                                          {subtopic.estimatedHours}h
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </CardContent>
+                          </motion.div>
+                        )
+                      })() : (
+                        <motion.div
+                          key="select-topic"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex-1 flex items-center justify-center p-8"
+                        >
+                          <div className="text-center text-text-secondary">
+                            <Target className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                            <p className="text-lg font-medium mb-2">Select a Topic</p>
+                            <p className="text-sm">Click on a topic to view its subtopics</p>
+                          </div>
                         </motion.div>
-                      )
-                    })() : (
-                      <motion.div
-                        key="select-topic"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="flex-1 flex items-center justify-center p-8"
-                      >
-                        <div className="text-center text-text-secondary">
-                          <Target className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                          <p className="text-lg font-medium mb-2">Select a Topic</p>
-                          <p className="text-sm">Click on a topic from the left to view its subtopics</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Card>
-              </div>
+                      )}
+                    </AnimatePresence>
+                  </Card>
+                </div>
+              </>
             )}
           </motion.div>
         </TabsContent>

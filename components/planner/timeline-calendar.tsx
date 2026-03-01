@@ -83,6 +83,9 @@ export function TimelineCalendar({
   const [isDistributing, setIsDistributing] = useState(false)
   const [isExpanded, setIsExpanded] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
+  const [selectedMobileDate, setSelectedMobileDate] = useState<string | null>(null)
+  const [mobileViewMode, setMobileViewMode] = useState<'week' | 'month'>('week')
+  const mobileScrollRef = useRef<HTMLDivElement>(null)
   const hoverTimeoutRef = useState<NodeJS.Timeout | null>(null)[0]
   const hasDistributedRef = useRef(false)
   const topicsHashRef = useRef('')
@@ -369,34 +372,38 @@ export function TimelineCalendar({
   return (
     <>
       <Card className="overflow-hidden bg-gradient-to-br from-purple-500/5 to-blue-500/5">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Study Timeline Calendar
+        {/* Mobile-optimized Header */}
+        <CardHeader className="pb-2 sm:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Title Section */}
+            <div className="flex-1 min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                <span className="hidden sm:inline">Study Timeline </span>Calendar
               </CardTitle>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-xs text-text-secondary mt-1 hidden sm:block">
                 Topics distributed by priority across your study period
               </p>
             </div>
-            <div className="flex gap-2">
+            
+            {/* Control Buttons - Mobile Optimized */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleRedistributeAll}
                 disabled={isDistributing}
-                className="h-8"
+                className="h-8 text-xs px-2 sm:px-3 active:scale-95 transition-transform"
               >
                 {isDistributing ? (
                   <>
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-500 mr-2" />
-                    Redistributing...
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-500 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Redistributing...</span>
                   </>
                 ) : (
                   <>
-                    <RotateCcw className="h-3 w-3 mr-2" />
-                    Redistribute All
+                    <RotateCcw className="h-3 w-3 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Redistribute All</span>
                   </>
                 )}
               </Button>
@@ -404,18 +411,18 @@ export function TimelineCalendar({
                 variant="outline"
                 size="sm"
                 onClick={goToPreviousMonth}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 active:scale-95 transition-transform"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <div className="flex items-center px-3 text-sm font-medium">
-                {monthName}
+              <div className="flex items-center px-2 sm:px-3 text-xs sm:text-sm font-medium min-w-[80px] sm:min-w-[120px] justify-center">
+                {currentMonth.toLocaleString('default', { month: 'short', year: 'numeric' })}
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={goToNextMonth}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 active:scale-95 transition-transform"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -423,8 +430,8 @@ export function TimelineCalendar({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="h-8 w-8 p-0"
-                title={isExpanded ? 'Collapse Calendar' : 'Expand Calendar'}
+                className="h-8 w-8 p-0 active:scale-95 transition-transform"
+                title={isExpanded ? 'Collapse' : 'Expand'}
               >
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4" />
@@ -435,38 +442,38 @@ export function TimelineCalendar({
             </div>
           </div>
 
-          {/* Statistics */}
+          {/* Statistics - Mobile Optimized Grid */}
           <AnimatePresence>
             {isExpanded && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
                 className="overflow-hidden"
               >
-                <div className="grid grid-cols-4 gap-3 mt-4">
-                  <div className="bg-bg-surface rounded-lg p-3 border border-border">
-                    <div className="text-xs text-text-secondary">Total Topics</div>
-                    <div className="text-2xl font-bold text-text-primary">
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mt-3 sm:mt-4">
+                  <div className="bg-bg-surface rounded-lg p-2 sm:p-3 border border-border">
+                    <div className="text-[10px] sm:text-xs text-text-secondary">Total Topics</div>
+                    <div className="text-lg sm:text-2xl font-bold text-text-primary">
                       {stats.total}
                     </div>
                   </div>
-                  <div className="bg-bg-surface rounded-lg p-3 border border-border">
-                    <div className="text-xs text-text-secondary">Scheduled</div>
-                    <div className="text-2xl font-bold text-purple-400">
+                  <div className="bg-bg-surface rounded-lg p-2 sm:p-3 border border-border">
+                    <div className="text-[10px] sm:text-xs text-text-secondary">Scheduled</div>
+                    <div className="text-lg sm:text-2xl font-bold text-purple-400">
                       {stats.scheduled}
                     </div>
                   </div>
-                  <div className="bg-bg-surface rounded-lg p-3 border border-border">
-                    <div className="text-xs text-text-secondary">Completed</div>
-                    <div className="text-2xl font-bold text-green-400">
+                  <div className="bg-bg-surface rounded-lg p-2 sm:p-3 border border-border">
+                    <div className="text-[10px] sm:text-xs text-text-secondary">Completed</div>
+                    <div className="text-lg sm:text-2xl font-bold text-green-400">
                       {stats.completed}
                     </div>
                   </div>
-                  <div className="bg-bg-surface rounded-lg p-3 border border-border">
-                    <div className="text-xs text-text-secondary">High Priority</div>
-                    <div className="text-2xl font-bold text-red-400">
+                  <div className="bg-bg-surface rounded-lg p-2 sm:p-3 border border-border">
+                    <div className="text-[10px] sm:text-xs text-text-secondary">High Priority</div>
+                    <div className="text-lg sm:text-2xl font-bold text-red-400">
                       {stats.highPriority}
                     </div>
                   </div>
@@ -482,9 +489,189 @@ export function TimelineCalendar({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              <CardContent>
+              <CardContent className="pt-0 sm:pt-4">
+                {/* Mobile Week View - Horizontal Scrollable */}
+                <div className="sm:hidden">
+                  {/* Weekday headers */}
+                  <div className="grid grid-cols-7 gap-0.5 mb-2">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                      <div
+                        key={`${day}-${i}`}
+                        className="text-center text-[10px] font-medium text-text-muted py-1"
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Mobile Calendar Grid - Compact */}
+                  <div className="grid grid-cols-7 gap-0.5 mb-3">
+                    {/* Empty cells for alignment */}
+                    {Array.from({
+                      length: new Date(
+                        currentMonth.getFullYear(),
+                        currentMonth.getMonth(),
+                        1
+                      ).getDay(),
+                    }).map((_, i) => (
+                      <div key={`empty-${i}`} className="aspect-square" />
+                    ))}
+
+                    {/* Calendar days - Mobile optimized */}
+                    {filteredDays.map((day) => {
+                      const hasTopics = day.topics.length > 0
+                      const isSelected = selectedMobileDate === day.dateStr
+                      
+                      return (
+                        <button
+                          key={day.dateStr}
+                          onClick={() => setSelectedMobileDate(isSelected ? null : day.dateStr)}
+                          className={cn(
+                            'aspect-square rounded-md flex flex-col items-center justify-center relative transition-all duration-150 active:scale-95',
+                            day.isToday
+                              ? 'bg-purple-500 text-white font-bold shadow-md'
+                              : isSelected
+                              ? 'bg-purple-500/30 border-2 border-purple-500'
+                              : hasTopics
+                              ? 'bg-bg-surface border border-border'
+                              : 'border border-transparent',
+                            day.isWeekend && !day.isToday && !isSelected && 'opacity-50',
+                            day.isPast && !day.isToday && 'opacity-60'
+                          )}
+                        >
+                          <span className={cn(
+                            'text-xs font-medium',
+                            day.isToday ? 'text-white' : 'text-text-primary'
+                          )}>
+                            {day.date.getDate()}
+                          </span>
+                          {/* Topic indicators */}
+                          {hasTopics && (
+                            <div className="flex gap-0.5 mt-0.5">
+                              {day.topics.slice(0, 3).map((t, i) => (
+                                <div
+                                  key={i}
+                                  className={cn(
+                                    'w-1 h-1 rounded-full',
+                                    t.priority === 'high' ? 'bg-red-500' :
+                                    t.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500',
+                                    t.status === 'completed' && 'opacity-40'
+                                  )}
+                                />
+                              ))}
+                              {day.topics.length > 3 && (
+                                <span className="text-[8px] text-text-muted">+{day.topics.length - 3}</span>
+                              )}
+                            </div>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Selected Day Topics - Mobile */}
+                  <AnimatePresence mode="wait">
+                    {selectedMobileDate && (() => {
+                      const selectedDay = filteredDays.find(d => d.dateStr === selectedMobileDate)
+                      if (!selectedDay) return null
+                      
+                      return (
+                        <motion.div
+                          key={selectedMobileDate}
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="bg-bg-surface rounded-xl border border-border p-3 mb-3"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium text-sm">
+                              {selectedDay.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                            </div>
+                            {selectedDay.topics.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {selectedDay.topics.reduce((acc, t) => acc + (t.estimatedHours || 0), 0).toFixed(1)}h total
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {selectedDay.topics.length > 0 ? (
+                            <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-hide">
+                              {selectedDay.topics.map((topic) => (
+                                <div
+                                  key={topic.id}
+                                  className={cn(
+                                    'flex items-center gap-2 p-2.5 rounded-lg border transition-all',
+                                    getPriorityColor(topic.priority),
+                                    topic.status === 'completed' && 'opacity-60 line-through'
+                                  )}
+                                >
+                                  <button
+                                    onClick={(e) => handleToggleComplete(e, topic)}
+                                    className="flex-shrink-0 p-0.5 active:scale-90 transition-transform"
+                                  >
+                                    {topic.status === 'completed' ? (
+                                      <CheckCircle2 className="h-5 w-5 text-green-400" />
+                                    ) : (
+                                      <Circle className="h-5 w-5 text-text-muted" />
+                                    )}
+                                  </button>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium truncate">{topic.title}</div>
+                                    {topic.estimatedHours > 0 && (
+                                      <div className="text-[10px] text-text-muted">{topic.estimatedHours}h</div>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 flex-shrink-0"
+                                    onClick={() => handleEditTopic(topic)}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-xs text-text-muted">
+                              No topics scheduled
+                            </div>
+                          )}
+                        </motion.div>
+                      )
+                    })()}
+                  </AnimatePresence>
+
+                  {/* Mobile Legend */}
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] pt-2 border-t border-border">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                      <span className="text-text-muted">Today</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-text-muted">High</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <span className="text-text-muted">Medium</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-text-muted">Low</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500/40" />
+                      <span className="text-text-muted">Done</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Calendar View */}
+                <div className="hidden sm:block">
           {/* Weekday headers */}
           <div className="grid grid-cols-7 gap-2 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -627,7 +814,7 @@ export function TimelineCalendar({
             ))}
           </div>
 
-          {/* Legend */}
+          {/* Desktop Legend */}
           <div className="mt-6 flex flex-wrap gap-4 text-xs">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded border-2 border-purple-500 bg-purple-500/10" />
@@ -650,6 +837,7 @@ export function TimelineCalendar({
               <span className="text-text-secondary">Completed</span>
             </div>
           </div>
+                </div> {/* End of Desktop View */}
               </CardContent>
             </motion.div>
           )}
