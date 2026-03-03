@@ -75,16 +75,6 @@ export async function PATCH(request: Request, { params }: Params) {
     const userId = session.user.id
     const body = await request.json()
 
-    // Verify ownership
-    const [existingHabit] = await db.select({ id: habits.id })
-      .from(habits)
-      .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
-      .limit(1)
-
-    if (!existingHabit) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-    }
-
     // Prepare update data
     const updateData: Record<string, any> = {}
     
@@ -103,11 +93,15 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    // Update habit
+    // Single query: update + ownership check combined (no extra SELECT round-trip)
     const [updatedHabit] = await db.update(habits)
       .set(updateData)
-      .where(eq(habits.id, habitId))
+      .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
       .returning()
+
+    if (!updatedHabit) {
+      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
+    }
 
     return NextResponse.json({ habit: updatedHabit })
   } catch (error) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
@@ -18,12 +18,6 @@ import {
   MoreVertical,
   BookOpen,
   TrendingUp,
-  AlertCircle,
-  BarChart3,
-  FileText,
-  RotateCcw,
-  BookMarked,
-  Plus,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -64,55 +58,6 @@ interface Plan {
   inProgressTopics: number
 }
 
-interface AnalyticsData {
-  timeline: {
-    totalDaysAvailable: number | null
-    daysPassed: number
-    bufferDays: number | null
-    isOnTrack: boolean | null
-    progressPercentage: number
-    expectedProgress: number | null
-  }
-  topics: {
-    total: number
-    completed: number
-    inProgress: number
-    remaining: number
-    dailyTarget: number | null
-    byPriority: {
-      high: { total: number; completed: number; percentage: string }
-      medium: { total: number; completed: number; percentage: string }
-      low: { total: number; completed: number; percentage: string }
-    }
-    overdue: number
-  }
-  studyHours: {
-    last30Days: {
-      planned: number
-      actual: number
-      average: number
-      adherence: number | null
-    }
-  }
-  mockTests: {
-    total: number
-    completed: number
-    averageScore: number | null
-    scheduled: number
-  }
-  revision: {
-    total: number
-    pending: number
-    completed: number
-    overdueRevisions: number
-  }
-  mistakes: {
-    total: number
-    unresolved: number
-    byCategory: Record<string, number>
-  }
-}
-
 export default function PlanDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -148,22 +93,15 @@ export default function PlanDetailPage() {
     }
   )
 
-  const refetchPlan = useCallback(async () => {
-    await mutatePlan()
-  }, [mutatePlan])
-
   const plan = (pageData?.plan as Plan) || null
-  const analytics = (pageData?.analytics as AnalyticsData) || null
   const loading = pageLoading
-  const analyticsLoading = pageLoading
-  const analyticsError = pageError
 
   // Toast helper function
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now().toString()
     const newToast: ToastType = { id, message, type }
     setToasts((prev) => [...prev, newToast])
-    
+
     // Auto-remove after 3 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -178,9 +116,9 @@ export default function PlanDetailPage() {
   useEffect(() => {
     if (plan && plan.topics.length > 0 && !selectedTopicId) {
       const firstIncomplete = plan.topics.find(
-        (topic: any) => 
-          topic.status !== 'completed' && 
-          topic.subtopics && 
+        (topic: any) =>
+          topic.status !== 'completed' &&
+          topic.subtopics &&
           topic.subtopics.length > 0
       )
       if (firstIncomplete) {
@@ -209,10 +147,10 @@ export default function PlanDetailPage() {
 
   const updateTopicStatus = async (topicId: string, currentStatus: string, topicTitle?: string) => {
     if (!plan || !pageData) return
-    
+
     // Toggle between not_started and completed only
     const newStatus = currentStatus === 'completed' ? 'not_started' : 'completed'
-    
+
     // Optimistic update - update local state immediately
     const updateTopicInList = (topics: Topic[]): Topic[] => {
       return topics.map(topic => {
@@ -225,12 +163,12 @@ export default function PlanDetailPage() {
         return topic
       })
     }
-    
+
     // Calculate new counts
     const isCompleting = newStatus === 'completed'
     const wasCompleted = currentStatus === 'completed'
     const countDelta = isCompleting ? 1 : (wasCompleted ? -1 : 0)
-    
+
     // Optimistic update using SWR mutate
     mutatePlan((prev: any) => ({
       ...prev,
@@ -240,13 +178,13 @@ export default function PlanDetailPage() {
         completedTopics: prev.plan.completedTopics + countDelta,
       }
     }), false)
-    
+
     // Show toast immediately
-    const toastMessage = newStatus === 'completed' 
+    const toastMessage = newStatus === 'completed'
       ? `🎉 Completed ${topicTitle || 'topic'}!`
       : `Reset ${topicTitle || 'topic'}`
     showToast(toastMessage, 'success')
-    
+
     // Sync with API in background (no await, fire-and-forget)
     fetch(`/api/topics/${topicId}`, {
       method: 'PATCH',
@@ -275,7 +213,7 @@ export default function PlanDetailPage() {
         throw new Error('Failed to update plan')
       }
 
-      await refetchPlan()
+      await mutatePlan()
       // Revalidate related caches
       revalidatePlans()
       revalidateDashboard()
@@ -307,8 +245,6 @@ export default function PlanDetailPage() {
       console.error('Failed to delete plan:', error)
     }
   }
-
-
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -429,7 +365,7 @@ export default function PlanDetailPage() {
             <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>{plan.type.charAt(0).toUpperCase() + plan.type.slice(1)} Plan</span>
           </div>
-          
+
           {/* Compact Stats Row - Horizontal scroll on mobile */}
           <div className="flex items-center gap-3 sm:gap-6 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide -mx-1 px-1">
             <motion.div
@@ -492,27 +428,21 @@ export default function PlanDetailPage() {
 
       {/* Study Tracker Tabs - Mobile Optimized with smooth transitions */}
       <Tabs defaultValue="overview" className="space-y-3 sm:space-y-4">
-        <TabsList className="grid w-full grid-cols-4 h-10 sm:h-12 bg-bg-surface/60 backdrop-blur-md p-1 gap-0.5 sm:gap-1 rounded-xl sticky top-0 z-10">
-          <TabsTrigger 
-            value="overview" 
+        <TabsList className="grid w-full grid-cols-3 h-10 sm:h-12 bg-bg-surface/60 backdrop-blur-md p-1 gap-0.5 sm:gap-1 rounded-xl sticky top-0 z-10">
+          <TabsTrigger
+            value="overview"
             className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
           >
             Overview
           </TabsTrigger>
-          <TabsTrigger 
-            value="timeline" 
+          <TabsTrigger
+            value="timeline"
             className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
           >
             Calendar
           </TabsTrigger>
-          <TabsTrigger 
-            value="analytics" 
-            className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
-          >
-            Analytics
-          </TabsTrigger>
-          <TabsTrigger 
-            value="topics" 
+          <TabsTrigger
+            value="topics"
             className="data-[state=active]:bg-purple-500 data-[state=active]:text-white text-[11px] sm:text-sm py-2 px-1 sm:px-3 rounded-lg transition-all duration-200 active:scale-95"
           >
             Topics
@@ -520,113 +450,238 @@ export default function PlanDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
-          {/* Enhanced Timeline Section - Mobile Optimized */}
-          {analyticsLoading ? (
-            <Card className="overflow-hidden">
-              <CardContent className="py-8 sm:py-10 text-center">
-                <div className="flex flex-col items-center gap-2 sm:gap-3">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-500"></div>
-                  <p className="text-text-secondary text-sm">Loading analytics data...</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : analytics ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-            >
-              <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20 overflow-hidden">
-                <CardHeader className="pb-2 sm:pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Target className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="truncate">Timeline & Progress</span>
-                    {analytics.timeline.isOnTrack !== null && (
-                      <Badge variant={analytics.timeline.isOnTrack ? 'default' : 'destructive'} className="ml-auto text-[10px] sm:text-xs">
-                        {analytics.timeline.isOnTrack ? 'On Track' : 'Behind'}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 sm:space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
-                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Days Remaining</div>
-                      <div className="text-lg sm:text-xl font-bold">
-                        {analytics.timeline.totalDaysAvailable || 'N/A'}
-                      </div>
-                    </div>
-                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
-                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Days Passed</div>
-                      <div className="text-lg sm:text-xl font-bold">{analytics.timeline.daysPassed}</div>
-                    </div>
-                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
-                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Buffer Days</div>
-                      <div className="text-lg sm:text-xl font-bold text-green-500">
-                        {analytics.timeline.bufferDays || 'N/A'}
-                      </div>
-                    </div>
-                    <div className="bg-bg-surface/50 rounded-lg p-2.5 sm:p-3">
-                      <div className="text-[10px] sm:text-xs text-text-secondary mb-0.5">Daily Target</div>
-                      <div className="text-lg sm:text-xl font-bold text-purple-500">
-                        {analytics.topics.dailyTarget?.toFixed(1) || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 sm:space-y-2 pt-1 sm:pt-2">
-                    <div className="flex justify-between text-xs sm:text-sm">
-                      <span>Overall Progress</span>
-                      <span className="font-semibold">{analytics.timeline.progressPercentage}%</span>
-                    </div>
-                    <Progress value={analytics.timeline.progressPercentage} className="h-2 sm:h-2.5" />
-                    {analytics.timeline.expectedProgress && (
-                      <div className="text-[10px] sm:text-xs text-text-secondary">
-                        Expected: {analytics.timeline.expectedProgress.toFixed(1)}%
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : null}
+          {(() => {
+            // Compute stats from plan.topics (subtopics only)
+            const allSubtopics = plan.topics.flatMap((t: any) => t.subtopics || [])
+            const completed = allSubtopics.filter((s: any) => s.status === 'completed').length
+            const inProgress = allSubtopics.filter((s: any) => s.status === 'in_progress').length
+            const remaining = allSubtopics.length - completed
+            const progress = allSubtopics.length > 0 ? Math.round((completed / allSubtopics.length) * 100) : 0
 
-          {/* Quick Actions - Mobile Optimized */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-          >
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-2 sm:pb-3">
-                <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Track your daily progress and manage study activities</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
-                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 active:scale-95 transition-transform">
-                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-[10px] sm:text-xs text-center leading-tight">Log Hours</span>
-                  </Button>
-                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 active:scale-95 transition-transform">
-                    <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-[10px] sm:text-xs text-center leading-tight">Mock Test</span>
-                  </Button>
-                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 active:scale-95 transition-transform">
-                    <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-[10px] sm:text-xs text-center leading-tight">Revisions</span>
-                  </Button>
-                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 col-span-3 sm:col-span-1 active:scale-95 transition-transform">
-                    <BookMarked className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-[10px] sm:text-xs text-center leading-tight">Mistakes</span>
-                  </Button>
-                  <Button variant="outline" className="h-16 sm:h-16 flex-col gap-1 p-2 col-span-3 sm:col-span-1 hidden sm:flex active:scale-95 transition-transform">
-                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-[10px] sm:text-xs text-center leading-tight">Weekly Review</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            // Timeline
+            const today = new Date()
+            const startDate = new Date(plan.startDate)
+            const endDate = plan.endDate ? new Date(plan.endDate) : null
+            const daysPassed = Math.max(0, Math.ceil((today.getTime() - startDate.getTime()) / 86400000))
+            const daysLeft = endDate ? Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / 86400000)) : null
+
+            // Priority breakdown from subtopics
+            const highCount = allSubtopics.filter((s: any) => s.priority === 'high' || s.priority === 'highest').length
+            const medCount = allSubtopics.filter((s: any) => s.priority === 'medium').length
+            const lowCount = allSubtopics.filter((s: any) => s.priority === 'low').length
+            const highDone = allSubtopics.filter((s: any) => (s.priority === 'high' || s.priority === 'highest') && s.status === 'completed').length
+            const medDone = allSubtopics.filter((s: any) => s.priority === 'medium' && s.status === 'completed').length
+            const lowDone = allSubtopics.filter((s: any) => s.priority === 'low' && s.status === 'completed').length
+
+            // Next topics to work on (first 5 incomplete subtopics)
+            const nextSubtopics = allSubtopics.filter((s: any) => s.status !== 'completed').slice(0, 5)
+
+            return (
+              <div className="space-y-3 sm:space-y-4">
+                {/* Top Stats Row */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
+                >
+                  {[
+                    { label: 'Completed', value: completed, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+                    { label: 'In Progress', value: inProgress, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
+                    { label: 'Remaining', value: remaining, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' },
+                    { label: 'Total Topics', value: allSubtopics.length, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+                  ].map((stat, i) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05, duration: 0.2 }}
+                      className={`rounded-xl border p-3 sm:p-4 ${stat.bg}`}
+                    >
+                      <div className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                      <div className="text-[10px] sm:text-xs text-text-muted mt-0.5">{stat.label}</div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+
+                {/* Overall Progress Bar */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.2 }}
+                >
+                  <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20 overflow-hidden">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-text-primary">Overall Progress</span>
+                        <span className="text-lg font-bold text-purple-400">{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="h-3 rounded-full" />
+                      <div className="flex justify-between text-[10px] sm:text-xs text-text-muted mt-2">
+                        <span>{completed} of {allSubtopics.length} subtopics done</span>
+                        {remaining > 0 && <span>{remaining} left to complete</span>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Timeline + Estimated Hours */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, duration: 0.2 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3"
+                >
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                        <Calendar className="h-4 w-4 text-blue-500" />
+                        Timeline
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 sm:p-4 pt-0 grid grid-cols-2 gap-2">
+                      <div className="bg-bg-surface/50 rounded-lg p-2.5 text-center">
+                        <div className="text-[10px] text-text-muted mb-1">Start Date</div>
+                        <div className="text-sm font-semibold">{startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                      </div>
+                      <div className="bg-bg-surface/50 rounded-lg p-2.5 text-center">
+                        <div className="text-[10px] text-text-muted mb-1">End Date</div>
+                        <div className="text-sm font-semibold">{endDate ? endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Open'}</div>
+                      </div>
+                      <div className="bg-bg-surface/50 rounded-lg p-2.5 text-center">
+                        <div className="text-[10px] text-text-muted mb-1">Days Passed</div>
+                        <div className="text-sm font-bold text-text-primary">{daysPassed}</div>
+                      </div>
+                      <div className="bg-bg-surface/50 rounded-lg p-2.5 text-center">
+                        <div className="text-[10px] text-text-muted mb-1">Days Left</div>
+                        <div className={`text-sm font-bold ${daysLeft !== null && daysLeft < 7 ? 'text-red-400' : daysLeft !== null && daysLeft < 30 ? 'text-yellow-400' : 'text-green-400'}`}>
+                          {daysLeft !== null ? daysLeft : '—'}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="overflow-hidden">
+                    <CardHeader className="pb-2 p-3 sm:p-4">
+                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                        <Clock className="h-4 w-4 text-orange-500" />
+                        Study Load
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 sm:p-4 pt-0 space-y-2">
+                      <div className="flex justify-between items-center bg-bg-surface/50 rounded-lg p-2.5">
+                        <span className="text-[10px] sm:text-xs text-text-muted">Total Est. Hours</span>
+                        <span className="text-sm font-bold text-orange-400">{plan.totalEstimatedHours}h</span>
+                      </div>
+                      {plan.dailyHours && (
+                        <div className="flex justify-between items-center bg-bg-surface/50 rounded-lg p-2.5">
+                          <span className="text-[10px] sm:text-xs text-text-muted">Daily Target</span>
+                          <span className="text-sm font-bold text-purple-400">{plan.dailyHours}h/day</span>
+                        </div>
+                      )}
+                      {daysLeft !== null && remaining > 0 && (
+                        <div className="flex justify-between items-center bg-bg-surface/50 rounded-lg p-2.5">
+                          <span className="text-[10px] sm:text-xs text-text-muted">Topics/Day Needed</span>
+                          <span className="text-sm font-bold text-blue-400">{(remaining / Math.max(1, daysLeft)).toFixed(1)}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Priority Breakdown */}
+                {allSubtopics.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.2 }}
+                  >
+                    <Card className="overflow-hidden">
+                      <CardHeader className="pb-2 p-3 sm:p-4">
+                        <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                          <Target className="h-4 w-4 text-purple-500" />
+                          Priority Breakdown
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 sm:p-4 pt-0 space-y-2.5">
+                        {[
+                          { label: 'High', total: highCount, done: highDone, color: 'bg-red-500', bgLight: 'bg-red-500/10', textColor: 'text-red-400' },
+                          { label: 'Medium', total: medCount, done: medDone, color: 'bg-yellow-500', bgLight: 'bg-yellow-500/10', textColor: 'text-yellow-400' },
+                          { label: 'Low', total: lowCount, done: lowDone, color: 'bg-green-500', bgLight: 'bg-green-500/10', textColor: 'text-green-400' },
+                        ].filter(p => p.total > 0).map((p, i) => (
+                          <motion.div
+                            key={p.label}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.25 + i * 0.05, duration: 0.2 }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <div className={`h-2 w-2 rounded-full ${p.color}`} />
+                                <span className="text-xs sm:text-sm font-medium">{p.label} Priority</span>
+                              </div>
+                              <span className={`text-xs font-semibold ${p.textColor}`}>{p.done}/{p.total}</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-bg-surface overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${p.total > 0 ? Math.round((p.done / p.total) * 100) : 0}%` }}
+                                transition={{ delay: 0.3 + i * 0.05, duration: 0.5, ease: 'easeOut' }}
+                                className={`h-full rounded-full ${p.color}`}
+                              />
+                            </div>
+                          </motion.div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+
+                {/* Next Up */}
+                {nextSubtopics.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25, duration: 0.2 }}
+                  >
+                    <Card className="overflow-hidden">
+                      <CardHeader className="pb-2 p-3 sm:p-4">
+                        <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                          <TrendingUp className="h-4 w-4 text-purple-500" />
+                          Up Next
+                          <Badge className="ml-auto text-[10px] bg-purple-500/20 text-purple-400 border-0">
+                            {remaining} pending
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 sm:p-4 pt-0 space-y-1.5">
+                        {nextSubtopics.map((subtopic: any, i: number) => (
+                          <motion.div
+                            key={subtopic.id}
+                            initial={{ opacity: 0, x: -5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 + i * 0.04, duration: 0.15 }}
+                            className="flex items-center gap-2.5 p-2 sm:p-2.5 rounded-lg bg-bg-surface/50 border border-border"
+                          >
+                            <div className={`h-2 w-2 rounded-full flex-shrink-0 ${subtopic.priority === 'high' || subtopic.priority === 'highest' ? 'bg-red-400' :
+                                subtopic.priority === 'medium' ? 'bg-yellow-400' : 'bg-green-400'
+                              }`} />
+                            <span className="flex-1 text-xs sm:text-sm text-text-primary truncate">{subtopic.title}</span>
+                            {subtopic.estimatedHours > 0 && (
+                              <span className="flex items-center gap-0.5 text-[10px] text-text-muted flex-shrink-0">
+                                <Clock className="h-2.5 w-2.5" />
+                                {subtopic.estimatedHours}h
+                              </span>
+                            )}
+                          </motion.div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </div>
+            )
+          })()}
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
@@ -643,372 +698,10 @@ export default function PlanDetailPage() {
               planId={planId}
               dailyHours={plan.dailyHours}
               onTopicsUpdate={() => {
-                console.log('Topics updated, need to refetch')
+                mutatePlan()
               }}
             />
           </motion.div>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
-          {analyticsLoading ? (
-            <Card className="overflow-hidden">
-              <CardContent className="py-8 sm:py-10 text-center">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-500"></div>
-                  <p className="text-text-secondary text-sm">Loading analytics...</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : analyticsError ? (
-            <Card className="overflow-hidden">
-              <CardContent className="py-8 sm:py-10 text-center">
-                <div className="flex flex-col items-center gap-2">
-                  <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500" />
-                  <p className="text-text-primary font-semibold text-sm">Failed to load analytics</p>
-                  <p className="text-text-secondary text-xs">Please try refreshing</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : analytics ? (
-            <div className="space-y-3 sm:space-y-4">
-              {/* Priority Strategy - Mobile Compact Layout */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="bg-gradient-to-br from-purple-500/5 to-blue-500/5 border-purple-500/20 overflow-hidden">
-                  <CardHeader className="pb-2 sm:pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                      <Target className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
-                      Priority Strategy
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 sm:space-y-3">
-                    {/* Priority Cards - Stacked on mobile */}
-                    <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-3">
-                      {/* High Priority */}
-                      <motion.div 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05, duration: 0.2 }}
-                        className="p-2.5 sm:p-3 rounded-lg bg-red-500/10 border border-red-500/20"
-                      >
-                        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                          <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 py-0.5">🔴 High</Badge>
-                          <span className="text-base sm:text-lg font-bold">{analytics.topics.byPriority.high.percentage}%</span>
-                        </div>
-                        <Progress value={parseFloat(analytics.topics.byPriority.high.percentage)} className="h-1 sm:h-1.5 mb-1.5" />
-                        <div className="text-[10px] sm:text-xs text-text-secondary">
-                          {analytics.topics.byPriority.high.completed} / {analytics.topics.byPriority.high.total} completed
-                        </div>
-                        <div className="text-[10px] text-text-muted mt-0.5 hidden sm:block">First 50% time</div>
-                      </motion.div>
-
-                      {/* Medium Priority */}
-                      <motion.div 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1, duration: 0.2 }}
-                        className="p-2.5 sm:p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20"
-                      >
-                        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                          <Badge variant="default" className="text-[10px] sm:text-xs px-1.5 py-0.5">🟡 Medium</Badge>
-                          <span className="text-base sm:text-lg font-bold">{analytics.topics.byPriority.medium.percentage}%</span>
-                        </div>
-                        <Progress value={parseFloat(analytics.topics.byPriority.medium.percentage)} className="h-1 sm:h-1.5 mb-1.5" />
-                        <div className="text-[10px] sm:text-xs text-text-secondary">
-                          {analytics.topics.byPriority.medium.completed} / {analytics.topics.byPriority.medium.total} completed
-                        </div>
-                        <div className="text-[10px] text-text-muted mt-0.5 hidden sm:block">Middle phase</div>
-                      </motion.div>
-
-                      {/* Low Priority */}
-                      <motion.div 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.15, duration: 0.2 }}
-                        className="p-2.5 sm:p-3 rounded-lg bg-green-500/10 border border-green-500/20"
-                      >
-                        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                          <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0.5">🟢 Low</Badge>
-                          <span className="text-base sm:text-lg font-bold">{analytics.topics.byPriority.low.percentage}%</span>
-                        </div>
-                        <Progress value={parseFloat(analytics.topics.byPriority.low.percentage)} className="h-1 sm:h-1.5 mb-1.5" />
-                        <div className="text-[10px] sm:text-xs text-text-secondary">
-                          {analytics.topics.byPriority.low.completed} / {analytics.topics.byPriority.low.total} completed
-                        </div>
-                        <div className="text-[10px] text-text-muted mt-0.5 hidden sm:block">Final phase</div>
-                      </motion.div>
-                    </div>
-                    
-                    {analytics.topics.overdue > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.2, duration: 0.2 }}
-                        className="p-2 sm:p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg"
-                      >
-                        <p className="text-[10px] sm:text-xs font-semibold text-red-500 flex items-center gap-1.5 sm:gap-2">
-                          <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                          {analytics.topics.overdue} overdue - Cover soon!
-                        </p>
-                      </motion.div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Second Row - 2-column on mobile, 3 on desktop */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-                {/* Study Hours - Compact */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05, duration: 0.2 }}
-                  className="col-span-1"
-                >
-                  <Card className="h-full overflow-hidden">
-                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
-                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
-                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
-                        <span className="truncate">Hours (30d)</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
-                      <div className="grid grid-cols-2 gap-1 sm:gap-2">
-                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Plan</div>
-                          <div className="text-sm sm:text-lg font-bold">{analytics.studyHours.last30Days.planned.toFixed(0)}h</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
-                          <div className="text-sm sm:text-lg font-bold text-blue-500">{analytics.studyHours.last30Days.actual.toFixed(0)}h</div>
-                        </div>
-                      </div>
-                      <div className="p-1.5 sm:p-2 bg-bg-surface rounded hidden sm:block">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-text-muted">Avg/Day</span>
-                          <span className="font-semibold">{analytics.studyHours.last30Days.average.toFixed(1)}h</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Mock Tests - Compact */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1, duration: 0.2 }}
-                  className="col-span-1"
-                >
-                  <Card className="h-full overflow-hidden">
-                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
-                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
-                        <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
-                        <span className="truncate">Mock Tests</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
-                      <div className="grid grid-cols-2 gap-1 sm:gap-2">
-                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
-                          <div className="text-sm sm:text-lg font-bold">{analytics.mockTests.total}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-green-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
-                          <div className="text-sm sm:text-lg font-bold text-green-500">{analytics.mockTests.completed}</div>
-                        </div>
-                      </div>
-                      {analytics.mockTests.averageScore !== null && (
-                        <div className="p-1.5 sm:p-2 bg-purple-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Avg Score</div>
-                          <div className="text-base sm:text-xl font-bold text-purple-500">{analytics.mockTests.averageScore}%</div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Topics Overview - Full width on mobile */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15, duration: 0.2 }}
-                  className="col-span-2 sm:col-span-1"
-                >
-                  <Card className="h-full bg-gradient-to-br from-purple-500/5 to-pink-500/5 overflow-hidden">
-                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
-                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
-                        <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
-                        Topics Overview
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
-                      <div className="grid grid-cols-4 sm:grid-cols-2 gap-1 sm:gap-2">
-                        <div className="p-1.5 sm:p-2 bg-bg-surface/50 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
-                          <div className="text-sm sm:text-lg font-bold">{analytics.topics.total}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-green-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
-                          <div className="text-sm sm:text-lg font-bold text-green-500">{analytics.topics.completed}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Active</div>
-                          <div className="text-sm sm:text-lg font-bold text-blue-500">{analytics.topics.inProgress}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Left</div>
-                          <div className="text-sm sm:text-lg font-bold text-orange-500">{analytics.topics.remaining}</div>
-                        </div>
-                      </div>
-                      {analytics.topics.dailyTarget !== null && (
-                        <div className="p-1.5 sm:p-2 mt-1.5 sm:mt-2 bg-purple-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Daily Target</div>
-                          <div className="text-xs sm:text-base font-bold text-purple-500">{analytics.topics.dailyTarget.toFixed(1)}/day</div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-
-              {/* Third Row - Revision & Mistakes - Compact on mobile */}
-              <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-4">
-                {/* Revision System - Compact */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.2 }}
-                >
-                  <Card className="h-full overflow-hidden">
-                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
-                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
-                        <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
-                        <span className="truncate">Revisions</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
-                      <div className="grid grid-cols-3 gap-1 sm:gap-2">
-                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
-                          <div className="text-sm sm:text-lg font-bold">{analytics.revision.total}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Due</div>
-                          <div className="text-sm sm:text-lg font-bold text-blue-500">{analytics.revision.pending}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-green-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Done</div>
-                          <div className="text-sm sm:text-lg font-bold text-green-500">{analytics.revision.completed}</div>
-                        </div>
-                      </div>
-                      {analytics.revision.overdueRevisions > 0 && (
-                        <div className="p-1.5 sm:p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                          <p className="text-[10px] sm:text-xs font-semibold text-red-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {analytics.revision.overdueRevisions} overdue
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                {/* Mistake Notebook - Compact */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25, duration: 0.2 }}
-                >
-                  <Card className="h-full overflow-hidden">
-                    <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
-                      <CardTitle className="flex items-center gap-1.5 text-xs sm:text-base">
-                        <BookMarked className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
-                        <span className="truncate">Mistakes</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0 space-y-1.5 sm:space-y-2">
-                      <div className="grid grid-cols-2 gap-1 sm:gap-2">
-                        <div className="p-1.5 sm:p-2 bg-bg-surface rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Total</div>
-                          <div className="text-sm sm:text-lg font-bold">{analytics.mistakes.total}</div>
-                        </div>
-                        <div className="p-1.5 sm:p-2 bg-orange-500/10 rounded text-center">
-                          <div className="text-[9px] sm:text-xs text-text-muted">Open</div>
-                          <div className="text-sm sm:text-lg font-bold text-orange-500">{analytics.mistakes.unresolved}</div>
-                        </div>
-                      </div>
-                      {Object.keys(analytics.mistakes.byCategory).length > 0 ? (
-                        <div className="max-h-16 sm:max-h-24 overflow-y-auto scrollbar-hide space-y-0.5 sm:space-y-1">
-                          {Object.entries(analytics.mistakes.byCategory).slice(0, 3).map(([category, count]) => (
-                            <div 
-                              key={category}
-                              className="flex justify-between items-center text-[10px] sm:text-xs p-1.5 sm:p-2 bg-bg-surface rounded"
-                            >
-                              <span className="truncate">{category}</span>
-                              <Badge variant="outline" className="text-[9px] sm:text-xs ml-1">{String(count)}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="py-2 sm:py-3 text-center text-[10px] sm:text-xs text-text-muted">
-                          No mistakes yet
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-
-              {/* Success Blueprint - Hidden on mobile for space */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.2 }}
-                className="hidden sm:block"
-              >
-                <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20 overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      🔥 Success Blueprint
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-                      {[
-                        'High priority first',
-                        'Track daily',
-                        'Revise weekly',
-                        'Mock analysis',
-                        'Buffer days',
-                        'Be consistent'
-                      ].map((tip, index) => (
-                        <motion.div
-                          key={tip}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: 0.35 + index * 0.03, duration: 0.15 }}
-                          className="flex items-center gap-1.5 p-2 bg-white/5 rounded-lg"
-                        >
-                          <span className="text-green-500 text-xs">✓</span>
-                          <span className="text-xs leading-tight">{tip}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          ) : (
-            <Card className="overflow-hidden">
-              <CardContent className="py-8 text-center text-text-secondary text-sm">
-                No analytics data available
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         <TabsContent value="topics" className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
@@ -1043,10 +736,10 @@ export default function PlanDetailPage() {
                       {plan.topics.map((topic: any, index: number) => {
                         const hasSubtopics = topic.subtopics && topic.subtopics.length > 0
                         const isExpanded = expandedTopics.has(topic.id)
-                        const completedSubtopics = hasSubtopics 
-                          ? topic.subtopics.filter((st: any) => st.status === 'completed').length 
+                        const completedSubtopics = hasSubtopics
+                          ? topic.subtopics.filter((st: any) => st.status === 'completed').length
                           : 0
-                        
+
                         return (
                           <motion.div
                             key={topic.id}
@@ -1059,8 +752,8 @@ export default function PlanDetailPage() {
                             <div
                               className={`
                                 p-2.5 rounded-lg transition-all duration-150 active:scale-[0.98]
-                                ${isExpanded 
-                                  ? 'bg-purple-500/20 border border-purple-500' 
+                                ${isExpanded
+                                  ? 'bg-purple-500/20 border border-purple-500'
                                   : 'border border-border hover:border-purple-500/50'
                                 }
                               `}
@@ -1082,7 +775,7 @@ export default function PlanDetailPage() {
                                   <h4 className={`text-xs font-medium ${topic.status === 'completed' ? 'line-through text-text-muted' : 'text-text-primary'}`}>
                                     {topic.title}
                                   </h4>
-                                  
+
                                   <div className="flex items-center gap-2 mt-1">
                                     {topic.estimatedHours > 0 && (
                                       <span className="flex items-center gap-0.5 text-[10px] text-text-secondary">
@@ -1099,10 +792,9 @@ export default function PlanDetailPage() {
                                 </div>
 
                                 {hasSubtopics && (
-                                  <ChevronDown 
-                                    className={`h-4 w-4 flex-shrink-0 transition-transform duration-200 text-text-muted ${
-                                      isExpanded ? 'rotate-180 text-purple-400' : ''
-                                    }`} 
+                                  <ChevronDown
+                                    className={`h-4 w-4 flex-shrink-0 transition-transform duration-200 text-text-muted ${isExpanded ? 'rotate-180 text-purple-400' : ''
+                                      }`}
                                   />
                                 )}
                               </div>
@@ -1110,9 +802,9 @@ export default function PlanDetailPage() {
                               {/* Progress Bar */}
                               {hasSubtopics && (
                                 <div className="mt-2">
-                                  <Progress 
-                                    value={(completedSubtopics / topic.subtopics.length) * 100} 
-                                    className="h-1" 
+                                  <Progress
+                                    value={(completedSubtopics / topic.subtopics.length) * 100}
+                                    className="h-1"
                                   />
                                 </div>
                               )}
@@ -1137,8 +829,8 @@ export default function PlanDetailPage() {
                                         transition={{ delay: subIndex * 0.03, duration: 0.15 }}
                                         className={`
                                           p-2 rounded-md transition-all duration-150 active:scale-[0.98]
-                                          ${subtopic.status === 'completed' 
-                                            ? 'bg-green-500/10 border border-green-500/20' 
+                                          ${subtopic.status === 'completed'
+                                            ? 'bg-green-500/10 border border-green-500/20'
                                             : 'bg-bg-surface/50 border border-border'
                                           }
                                         `}
@@ -1153,9 +845,7 @@ export default function PlanDetailPage() {
                                             className="mt-0.5 flex-shrink-0"
                                           />
                                           <div className="flex-1 min-w-0">
-                                            <h5 className={`text-[11px] font-medium ${
-                                              subtopic.status === 'completed' ? 'line-through text-text-muted' : 'text-text-primary'
-                                            }`}>
+                                            <h5 className={`text-[11px] font-medium ${subtopic.status === 'completed' ? 'line-through text-text-muted' : 'text-text-primary'}`}>
                                               {subtopic.title}
                                             </h5>
                                             {subtopic.estimatedHours > 0 && (
@@ -1196,10 +886,10 @@ export default function PlanDetailPage() {
                       {plan.topics.map((topic: any, index: number) => {
                         const hasSubtopics = topic.subtopics && topic.subtopics.length > 0
                         const isSelected = selectedTopicId === topic.id
-                        const completedSubtopics = hasSubtopics 
-                          ? topic.subtopics.filter((st: any) => st.status === 'completed').length 
+                        const completedSubtopics = hasSubtopics
+                          ? topic.subtopics.filter((st: any) => st.status === 'completed').length
                           : 0
-                        
+
                         return (
                           <motion.div
                             key={topic.id}
@@ -1210,8 +900,8 @@ export default function PlanDetailPage() {
                             <div
                               className={`
                                 relative p-3 rounded-lg cursor-pointer transition-all duration-150
-                                ${isSelected 
-                                  ? 'bg-purple-500/20 border-2 border-purple-500 shadow-md' 
+                                ${isSelected
+                                  ? 'bg-purple-500/20 border-2 border-purple-500 shadow-md'
                                   : 'border border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
                                 }
                               `}
@@ -1231,7 +921,7 @@ export default function PlanDetailPage() {
                                   <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-purple-300' : 'text-text-primary'}`}>
                                     {topic.title}
                                   </h4>
-                                  
+
                                   <div className="flex items-center gap-2 mt-1 text-xs text-text-secondary">
                                     {topic.estimatedHours > 0 && (
                                       <span className="flex items-center gap-1">
@@ -1248,19 +938,17 @@ export default function PlanDetailPage() {
                                 </div>
 
                                 {hasSubtopics && (
-                                  <ChevronRight 
-                                    className={`h-4 w-4 flex-shrink-0 transition-all duration-200 ${
-                                      isSelected ? 'rotate-90 text-purple-400' : 'text-text-muted'
-                                    }`} 
+                                  <ChevronRight
+                                    className={`h-4 w-4 flex-shrink-0 transition-all duration-200 ${isSelected ? 'rotate-90 text-purple-400' : 'text-text-muted'}`}
                                   />
                                 )}
                               </div>
 
                               {hasSubtopics && (
                                 <div className="mt-2">
-                                  <Progress 
-                                    value={(completedSubtopics / topic.subtopics.length) * 100} 
-                                    className="h-1" 
+                                  <Progress
+                                    value={(completedSubtopics / topic.subtopics.length) * 100}
+                                    className="h-1"
                                   />
                                 </div>
                               )}
@@ -1276,7 +964,7 @@ export default function PlanDetailPage() {
                     <AnimatePresence mode="wait">
                       {selectedTopicId ? (() => {
                         const selectedTopic = plan.topics.find((t: any) => t.id === selectedTopicId)
-                        
+
                         if (!selectedTopic || !selectedTopic.subtopics || selectedTopic.subtopics.length === 0) {
                           return (
                             <motion.div
@@ -1326,7 +1014,7 @@ export default function PlanDetailPage() {
                                 </Badge>
                               </div>
                             </CardHeader>
-                            
+
                             <CardContent className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
                               {selectedTopic.subtopics.map((subtopic: any, subIndex: number) => (
                                 <motion.div
@@ -1336,8 +1024,8 @@ export default function PlanDetailPage() {
                                   transition={{ delay: subIndex * 0.03, duration: 0.15 }}
                                   className={`
                                     p-3 rounded-lg border transition-all duration-150
-                                    ${subtopic.status === 'completed' 
-                                      ? 'bg-green-500/10 border-green-500/30' 
+                                    ${subtopic.status === 'completed'
+                                      ? 'bg-green-500/10 border-green-500/30'
                                       : 'border-border hover:border-purple-500/50 hover:bg-bg-surface/70'
                                     }
                                   `}
@@ -1353,9 +1041,7 @@ export default function PlanDetailPage() {
                                     />
 
                                     <div className="flex-1 min-w-0">
-                                      <h5 className={`text-sm font-medium ${
-                                        subtopic.status === 'completed' ? 'line-through text-text-secondary' : 'text-text-primary'
-                                      }`}>
+                                      <h5 className={`text-sm font-medium ${subtopic.status === 'completed' ? 'line-through text-text-secondary' : 'text-text-primary'}`}>
                                         {subtopic.title}
                                       </h5>
                                       {subtopic.estimatedHours > 0 && (

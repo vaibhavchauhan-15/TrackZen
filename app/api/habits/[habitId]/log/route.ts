@@ -3,17 +3,18 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { habits, habitLogs, streaks } from '@/lib/db/schema'
-import { eq, and, gte, lte, desc } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 /**
- * OPTIMIZED Habit Log API
- * 
- * POST: Toggle habit completion for a date
- * 
- * Performance optimizations:
- * 1. Upsert pattern for efficiency
- * 2. Smart streak calculation
- * 3. Single transaction for atomicity
+ * Habit Log API — Toggle habit completion for a given date
+ *
+ * POST /api/habits/[habitId]/log
+ * Body: { date?: string }  — defaults to today
+ *
+ * Behaviour:
+ *   no log        → create with status 'done'
+ *   status 'done' → delete log (un-mark)
+ *   other status  → update to 'done'
  */
 
 export const dynamic = 'force-dynamic'
@@ -22,266 +23,149 @@ interface Params {
   params: Promise<{ habitId: string }>
 }
 
-// POST /api/habits/[habitId]/log - Toggle habit completion
 export async function POST(request: Request, { params }: Params) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { habitId } = await params
     const userId = session.user.id
-    const body = await request.json()
 
-    const { date, status, note } = body
-    const logDate = date || new Date().toISOString().split('T')[0]
+    // Parse date from body, default to today
+    const body = await request.json().catch(() => ({}))
+    const date: string = body.date ?? new Date().toISOString().split('T')[0]
 
-    // Verify habit ownership
-    const [habit] = await db.select({ id: habits.id, frequency: habits.frequency })
+    // Single query: verify ownership AND check for existing log via LEFT JOIN.
+    // Reduces 2 serial round-trips to 1.
+    const [row] = await db
+      .select({
+        habitExists: habits.id,
+        logId: habitLogs.id,
+        logStatus: habitLogs.status,
+      })
       .from(habits)
+      .leftJoin(
+        habitLogs,
+        and(
+          eq(habitLogs.habitId, habitId),
+          eq(habitLogs.userId, userId),
+          eq(habitLogs.date, date),
+        ),
+      )
       .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
       .limit(1)
 
-    if (!habit) {
+    if (!row) {
       return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
     }
 
-    // Check for existing log
-    const [existingLog] = await db.select()
-      .from(habitLogs)
-      .where(and(
-        eq(habitLogs.habitId, habitId),
-        eq(habitLogs.userId, userId),
-        eq(habitLogs.date, logDate)
-      ))
-      .limit(1)
+    const existing = row.logId ? { id: row.logId, status: row.logStatus } : null
 
-    let resultLog
-    let newStatus = status
+    let newStatus: 'done' | null = null
 
-    // If no status provided, toggle existing or default to 'done'
-    if (status === undefined) {
-      newStatus = existingLog?.status === 'done' ? 'missed' : 'done'
+    if (!existing) {
+      // No log — mark as done
+      await db.insert(habitLogs).values({
+        habitId,
+        userId,
+        date,
+        status: 'done',
+      })
+      newStatus = 'done'
+    } else if (existing.status === 'done') {
+      // Already done — un-mark (delete log)
+      await db
+        .delete(habitLogs)
+        .where(eq(habitLogs.id, existing.id))
+      newStatus = null
+    } else {
+      // Other status (missed/skipped) — update to done
+      await db
+        .update(habitLogs)
+        .set({ status: 'done' })
+        .where(eq(habitLogs.id, existing.id))
+      newStatus = 'done'
     }
 
-    // Perform log upsert and streak update in transaction
-    const result = await db.transaction(async (tx) => {
-      // 1. Upsert habit log
-      if (existingLog) {
-        // Update existing log
-        const [updated] = await tx.update(habitLogs)
-          .set({ 
-            status: newStatus,
-            note: note !== undefined ? note : existingLog.note,
-          })
-          .where(eq(habitLogs.id, existingLog.id))
-          .returning()
-        resultLog = updated
-      } else {
-        // Create new log
-        const [created] = await tx.insert(habitLogs).values({
-          habitId,
-          userId,
-          date: logDate,
-          status: newStatus,
-          note: note || null,
-        }).returning()
-        resultLog = created
-      }
+    // Update habit streak
+    const today = new Date().toISOString().split('T')[0]
+    let returnedStreak: { currentStreak: number; longestStreak: number } | null = null
 
-      // 2. Update streak if marking as done
-      if (newStatus === 'done') {
-        const today = new Date().toISOString().split('T')[0]
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-        // Get current streak record
-        const [currentStreak] = await tx.select()
-          .from(streaks)
-          .where(and(
+    if (date === today) {
+      const [streak] = await db
+        .select()
+        .from(streaks)
+        .where(
+          and(
             eq(streaks.userId, userId),
             eq(streaks.type, 'habit'),
-            eq(streaks.refId, habitId)
-          ))
-          .limit(1)
+            eq(streaks.refId, habitId),
+          ),
+        )
+        .limit(1)
 
-        if (currentStreak) {
-          let newStreakCount = currentStreak.currentStreak
+      if (newStatus === 'done') {
+        if (streak) {
+          const lastActive = streak.lastActiveDate
+          const yesterday = new Date()
+          yesterday.setDate(yesterday.getDate() - 1)
+          const yesterdayStr = yesterday.toISOString().split('T')[0]
 
-          // Only update streak if marking today or continuing from yesterday
-          if (logDate === today || logDate === yesterdayStr) {
-            // Check if already logged yesterday for continuity
-            const [yesterdayLog] = await tx.select()
-              .from(habitLogs)
-              .where(and(
-                eq(habitLogs.habitId, habitId),
-                eq(habitLogs.userId, userId),
-                eq(habitLogs.date, yesterdayStr),
-                eq(habitLogs.status, 'done')
-              ))
-              .limit(1)
+          const newCurrent =
+            lastActive === today
+              ? streak.currentStreak
+              : lastActive === yesterdayStr
+                ? streak.currentStreak + 1
+                : 1
 
-            if (logDate === today) {
-              // If yesterday was done or last active was yesterday, increment
-              if (yesterdayLog || currentStreak.lastActiveDate === yesterdayStr) {
-                newStreakCount = currentStreak.currentStreak + 1
-              } else if (currentStreak.lastActiveDate !== today) {
-                // Start new streak
-                newStreakCount = 1
-              }
-            }
-          }
+          const newLongest = Math.max(streak.longestStreak, newCurrent)
 
-          // Update streak
-          await tx.update(streaks)
-            .set({
-              currentStreak: newStreakCount,
-              longestStreak: Math.max(currentStreak.longestStreak, newStreakCount),
-              lastActiveDate: logDate,
-              updatedAt: new Date(),
-            })
-            .where(eq(streaks.id, currentStreak.id))
+          await db
+            .update(streaks)
+            .set({ currentStreak: newCurrent, longestStreak: newLongest, lastActiveDate: today })
+            .where(eq(streaks.id, streak.id))
+
+          returnedStreak = { currentStreak: newCurrent, longestStreak: newLongest }
         } else {
-          // Create streak if doesn't exist
-          await tx.insert(streaks).values({
+          await db.insert(streaks).values({
             userId,
             type: 'habit',
             refId: habitId,
             currentStreak: 1,
             longestStreak: 1,
-            lastActiveDate: logDate,
+            lastActiveDate: today,
           })
+          returnedStreak = { currentStreak: 1, longestStreak: 1 }
         }
-
-        // Also update global streak
-        await updateGlobalStreak(tx, userId, logDate)
+      } else {
+        // Un-marked → decrement streak (treat lastActiveDate as yesterday or reset)
+        if (streak) {
+          const newCurrent = Math.max(0, streak.currentStreak - 1)
+          await db
+            .update(streaks)
+            .set({
+              currentStreak: newCurrent,
+              lastActiveDate: newCurrent > 0
+                ? (() => {
+                  const d = new Date()
+                  d.setDate(d.getDate() - 1)
+                  return d.toISOString().split('T')[0]
+                })()
+                : null,
+            })
+            .where(eq(streaks.id, streak.id))
+          returnedStreak = { currentStreak: newCurrent, longestStreak: streak.longestStreak }
+        } else {
+          returnedStreak = { currentStreak: 0, longestStreak: 0 }
+        }
       }
+    }
 
-      return resultLog
-    })
-
-    // Get updated streak info
-    const [updatedStreak] = await db.select()
-      .from(streaks)
-      .where(and(
-        eq(streaks.userId, userId),
-        eq(streaks.type, 'habit'),
-        eq(streaks.refId, habitId)
-      ))
-      .limit(1)
-
-    return NextResponse.json({
-      log: result,
-      streak: {
-        current: updatedStreak?.currentStreak || 0,
-        longest: updatedStreak?.longestStreak || 0,
-      },
-    })
+    return NextResponse.json({ status: newStatus, streak: returnedStreak })
   } catch (error) {
     console.error('Habit log POST error:', error)
-    return NextResponse.json({ error: 'Failed to log habit' }, { status: 500 })
-  }
-}
-
-// Helper to update global streak
-async function updateGlobalStreak(tx: any, userId: string, date: string) {
-  const [globalStreak] = await tx.select()
-    .from(streaks)
-    .where(and(
-      eq(streaks.userId, userId),
-      eq(streaks.type, 'global')
-    ))
-    .limit(1)
-
-  const today = new Date().toISOString().split('T')[0]
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-  if (globalStreak) {
-    let newGlobalStreak = globalStreak.currentStreak
-
-    // Check if last active was yesterday or today for continuity
-    if (globalStreak.lastActiveDate === yesterdayStr && date === today) {
-      newGlobalStreak = globalStreak.currentStreak + 1
-    } else if (globalStreak.lastActiveDate !== today && date === today) {
-      // Start new streak if breaking the chain
-      if (globalStreak.lastActiveDate !== yesterdayStr) {
-        newGlobalStreak = 1
-      } else {
-        newGlobalStreak = globalStreak.currentStreak + 1
-      }
-    }
-
-    await tx.update(streaks)
-      .set({
-        currentStreak: newGlobalStreak,
-        longestStreak: Math.max(globalStreak.longestStreak, newGlobalStreak),
-        lastActiveDate: date,
-        updatedAt: new Date(),
-      })
-      .where(eq(streaks.id, globalStreak.id))
-  } else {
-    // Create global streak
-    await tx.insert(streaks).values({
-      userId,
-      type: 'global',
-      refId: null,
-      currentStreak: 1,
-      longestStreak: 1,
-      lastActiveDate: date,
-    })
-  }
-}
-
-// GET /api/habits/[habitId]/log - Get habit logs for date range
-export async function GET(request: Request, { params }: Params) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { habitId } = await params
-    const userId = session.user.id
-    const { searchParams } = new URL(request.url)
-    
-    // Default to last 30 days
-    const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
-    const startDate = searchParams.get('startDate') || (() => {
-      const d = new Date()
-      d.setDate(d.getDate() - 30)
-      return d.toISOString().split('T')[0]
-    })()
-
-    // Verify habit ownership
-    const [habit] = await db.select({ id: habits.id })
-      .from(habits)
-      .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
-      .limit(1)
-
-    if (!habit) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-    }
-
-    // Get logs for date range
-    const logs = await db.select()
-      .from(habitLogs)
-      .where(and(
-        eq(habitLogs.habitId, habitId),
-        eq(habitLogs.userId, userId),
-        gte(habitLogs.date, startDate),
-        lte(habitLogs.date, endDate)
-      ))
-      .orderBy(desc(habitLogs.date))
-
-    return NextResponse.json({ logs })
-  } catch (error) {
-    console.error('Habit logs GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to toggle habit log' }, { status: 500 })
   }
 }

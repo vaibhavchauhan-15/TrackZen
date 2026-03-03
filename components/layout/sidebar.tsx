@@ -11,7 +11,7 @@ import {
   Flame,
   LogOut,
 } from 'lucide-react'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useDashboard } from '@/components/providers/dashboard-provider'
 import { useState, useCallback, useMemo } from 'react'
 
@@ -47,10 +47,11 @@ interface SidebarProps {
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { data } = useDashboard()
+  const { data: session } = useSession()
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
-  const user    = data?.user
-  const streak  = data?.streak ?? 0
+  const user    = session?.user
+  const streak  = data?.streak?.current ?? 0
   const loading = !data
 
   const streakTheme = useMemo(() => getStreakTheme(streak), [streak])
@@ -165,7 +166,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             <p className="text-[10px] font-semibold text-white/50 uppercase tracking-widest leading-none mb-1">
               Streak
             </p>
-            <p className="text-base font-black leading-none" style={{ color: streakTheme.color }}>
+            <p className="text-base font-black leading-none" style={{ color: streakTheme.color }} suppressHydrationWarning>
               {loading ? '–' : `${streak} day${streak !== 1 ? 's' : ''}`}
             </p>
           </div>

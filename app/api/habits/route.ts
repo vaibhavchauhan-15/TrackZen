@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { habits, habitLogs, streaks } from '@/lib/db/schema'
-import { eq, and, desc, gte, lte, sql } from 'drizzle-orm'
+import { eq, and, desc, gte, lte } from 'drizzle-orm'
 
 /**
  * OPTIMIZED Habits API
@@ -18,6 +18,13 @@ import { eq, and, desc, gte, lte, sql } from 'drizzle-orm'
  */
 
 export const dynamic = 'force-dynamic'
+
+// Helper: wrap response with no-store cache headers
+const jsonResponse = (data: any, status = 200) =>
+  NextResponse.json(data, {
+    status,
+    headers: { 'Cache-Control': 'no-store, must-revalidate' },
+  })
 
 // GET /api/habits - List all habits with streaks
 export async function GET(request: Request) {
@@ -36,8 +43,8 @@ export async function GET(request: Request) {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const weekStart = sevenDaysAgo.toISOString().split('T')[0]
 
-    // Parallel queries
-    const [userHabits, habitStreaks, recentLogs, todayLogs] = await Promise.all([
+    // Parallel queries — 3 instead of 4 (todayLogs derived from recentLogs)
+    const [userHabits, habitStreaks, recentLogs] = await Promise.all([
       // 1. Get all habits
       db.select({
         id: habits.id,
@@ -70,7 +77,7 @@ export async function GET(request: Request) {
         eq(streaks.type, 'habit')
       )),
 
-      // 3. Get logs for last 7 days
+      // 3. Get logs for last 7 days (includes today)
       db.select({
         id: habitLogs.id,
         habitId: habitLogs.habitId,
@@ -85,27 +92,14 @@ export async function GET(request: Request) {
         lte(habitLogs.date, today)
       ))
       .orderBy(desc(habitLogs.date)),
-
-      // 4. Today's logs specifically (for quick access)
-      db.select({
-        id: habitLogs.id,
-        habitId: habitLogs.habitId,
-        status: habitLogs.status,
-        note: habitLogs.note,
-        date: habitLogs.date,
-      })
-      .from(habitLogs)
-      .where(and(
-        eq(habitLogs.userId, userId),
-        eq(habitLogs.date, today)
-      )),
     ])
 
     // Create lookup maps
     const streaksMap = new Map(habitStreaks.map(s => [s.refId, s]))
+    // Derive today's logs from the weekly result — no extra DB query needed
     const todayLogsMap: Record<string, any> = {}
-    todayLogs.forEach(log => {
-      todayLogsMap[log.habitId] = log
+    recentLogs.forEach(log => {
+      if (log.date === today) todayLogsMap[log.habitId] = log
     })
 
     // Combine habits with streaks
@@ -168,7 +162,7 @@ export async function POST(request: Request) {
         timeSlot: timeSlot || null,
         priority: priority || 3,
         color: color || '#7C3AED',
-        icon: icon || 'target',
+        icon: icon || '🎯',
         isActive: true,
       }).returning()
 

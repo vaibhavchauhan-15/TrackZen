@@ -4,8 +4,9 @@ import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { AnimatedAddButton } from '@/components/ui/animated-add-button'
+import { useState, useEffect } from 'react'
 
-const greetingTime = () => {
+const getGreeting = () => {
   const h = new Date().getHours()
   if (h < 12) return 'Good Morning'
   if (h < 17) return 'Good Afternoon'
@@ -18,6 +19,11 @@ interface WelcomeBannerProps {
 }
 
 export function WelcomeBanner({ remainingToday, onAddHabit }: WelcomeBannerProps) {
+  // Compute greeting only on the client to avoid hydration mismatch
+  // (server and client may be in different timezones / render at different times)
+  const [greeting, setGreeting] = useState('Welcome')
+  useEffect(() => { setGreeting(getGreeting()) }, [])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -36,7 +42,7 @@ export function WelcomeBanner({ remainingToday, onAddHabit }: WelcomeBannerProps
                 </span>
               </div>
               <h2 className="text-base sm:text-lg font-bold text-text-primary leading-tight">
-                {greetingTime()}! 👋
+                {greeting}! 👋
               </h2>
               <p className="text-[10px] sm:text-xs text-text-secondary leading-snug">
                 {remainingToday > 0

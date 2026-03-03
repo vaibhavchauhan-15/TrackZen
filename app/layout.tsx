@@ -28,7 +28,7 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions)
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark scroll-smooth">
       <body className={inter.className}>
         <SessionProvider session={session}>
           <SWRProvider>

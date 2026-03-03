@@ -2,28 +2,36 @@
 
 import { motion } from 'framer-motion'
 import { Flame, CheckCircle, TrendingUp, Target } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { HabitStats } from './types'
 
-const CountUp = ({ target, duration = 1200 }: { target: number; duration?: number }) => {
-  const [count, setCount] = useState(0)
-  
+const CountUp = ({ target, duration = 350 }: { target: number; duration?: number }) => {
+  const [count, setCount] = useState(target)
+  const prevTarget = useRef(target)
+
   useEffect(() => {
-    let start = 0
-    const step = target / (duration / 16)
-    const timer = setInterval(() => {
-      start += step
-      if (start >= target) {
-        setCount(target)
-        clearInterval(timer)
-      } else {
-        setCount(Math.floor(start))
-      }
-    }, 16)
-    return () => clearInterval(timer)
+    const from = prevTarget.current
+    prevTarget.current = target
+    if (from === target) {
+      setCount(target)
+      return
+    }
+    const start = Date.now()
+    const diff = target - from
+    const tick = () => {
+      const elapsed = Date.now() - start
+      const progress = Math.min(elapsed / duration, 1)
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setCount(Math.round(from + diff * eased))
+      if (progress < 1) requestAnimationFrame(tick)
+      else setCount(target)
+    }
+    const raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
   }, [target, duration])
-  
+
   return <>{count}</>
 }
 

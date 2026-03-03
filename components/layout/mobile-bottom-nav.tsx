@@ -7,7 +7,8 @@ import { motion } from 'framer-motion'
 import { LayoutDashboard, Calendar, Target, Flame, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDashboard } from '@/components/providers/dashboard-provider'
-import { useMemo } from 'react'
+import { useSession } from 'next-auth/react'
+import { useMemo, useEffect, useState } from 'react'
 
 interface NavItem {
   href: string
@@ -33,11 +34,15 @@ const getStreakTheme = (s: number) =>
 export function MobileBottomNav() {
   const pathname = usePathname()
   const { data } = useDashboard()
-  
-  const user = data?.user
-  const streak = data?.streak ?? 0
+  const { data: session } = useSession()
+
+  const user = session?.user
+  const streak = data?.streak?.current ?? 0
   const streakTheme = useMemo(() => getStreakTheme(streak), [streak])
   
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const initials = useMemo(() => {
     if (!user?.name) return 'U'
     const parts = user.name.trim().split(/\s+/)
@@ -77,31 +82,46 @@ export function MobileBottomNav() {
             >
               {/* Active indicator background */}
               {isActive && (
-                <motion.div
-                  layoutId="bottomNavIndicator"
-                  className="absolute inset-0 bg-accent-purple/10 rounded-xl"
-                  initial={false}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 35,
-                  }}
-                />
+                mounted ? (
+                  <motion.div
+                    layoutId="bottomNavIndicator"
+                    className="absolute inset-0 bg-accent-purple/10 rounded-xl"
+                    initial={false}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 500,
+                      damping: 35,
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-accent-purple/10 rounded-xl" />
+                )
               )}
               
               {/* Icon with scale animation */}
-              <motion.div
-                className="relative z-10"
-                animate={isActive ? { scale: 1.1 } : { scale: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              >
-                <Icon 
-                  className={cn(
-                    'h-5 w-5 transition-all duration-200',
-                    isActive && 'drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]'
-                  )} 
-                />
-              </motion.div>
+              {mounted ? (
+                <motion.div
+                  className="relative z-10"
+                  animate={isActive ? { scale: 1.1 } : { scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                >
+                  <Icon 
+                    className={cn(
+                      'h-5 w-5 transition-all duration-200',
+                      isActive && 'drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]'
+                    )} 
+                  />
+                </motion.div>
+              ) : (
+                <div className={cn('relative z-10', isActive && 'scale-110')}>
+                  <Icon 
+                    className={cn(
+                      'h-5 w-5 transition-all duration-200',
+                      isActive && 'drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]'
+                    )} 
+                  />
+                </div>
+              )}
               
               {/* Label */}
               <span 
@@ -115,12 +135,16 @@ export function MobileBottomNav() {
               
               {/* Active dot indicator */}
               {isActive && (
-                <motion.div
-                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accent-purple rounded-full"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1, type: 'spring', stiffness: 500 }}
-                />
+                mounted ? (
+                  <motion.div
+                    className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accent-purple rounded-full"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1, type: 'spring', stiffness: 500 }}
+                  />
+                ) : (
+                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accent-purple rounded-full" />
+                )
               )}
             </Link>
           )
@@ -143,7 +167,7 @@ export function MobileBottomNav() {
               style={{ color: streakTheme.color }}
             />
           </div>
-          <span className="relative z-10 text-[10px] font-bold mt-0.5" style={{ color: streakTheme.color }}>
+          <span className="relative z-10 text-[10px] font-bold mt-0.5" style={{ color: streakTheme.color }} suppressHydrationWarning>
             {streak}
           </span>
         </div>

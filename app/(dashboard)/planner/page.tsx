@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { CardSkeleton } from '@/components/ui/loading-spinner'
-import { useDashboard } from '@/components/providers/dashboard-provider'
+import { usePlans } from '@/lib/hooks/use-swr-api'
 
 // Import optimized planner components
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/components/planner'
 
 export default function PlannerPage() {
-  const { data, loading } = useDashboard()
+  const { data, isLoading: loading } = usePlans()
 
   // Memoize transformed data
   const { plans, stats } = useMemo(() => {

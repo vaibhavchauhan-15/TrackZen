@@ -1,5 +1,3 @@
-import { Loader2 } from 'lucide-react'
-
 export default function PlanDetailLoading() {
   return (
     <div className="space-y-6">

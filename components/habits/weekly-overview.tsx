@@ -47,7 +47,7 @@ export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
       >
         <Card className="bg-bg-surface border-bg-elevated">
           <CardContent className="p-4 sm:p-5">
@@ -65,16 +65,14 @@ export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: `${day.rate}%` }}
-                      transition={{ duration: 0.6, delay: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                      className={`absolute bottom-0 w-full rounded-md ${
-                        isToday(day.date) ? 'bg-accent-purple' : 'bg-accent-purple/40'
-                      }`}
+                      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                      className={`absolute bottom-0 w-full rounded-md ${isToday(day.date) ? 'bg-accent-purple' : 'bg-accent-purple/40'
+                        }`}
                     />
                   </div>
                   <span
-                    className={`text-[9px] sm:text-[10px] font-medium ${
-                      isToday(day.date) ? 'text-accent-purple' : 'text-text-muted'
-                    }`}
+                    className={`text-[9px] sm:text-[10px] font-medium ${isToday(day.date) ? 'text-accent-purple' : 'text-text-muted'
+                      }`}
                   >
                     {day.dayName}
                   </span>
@@ -88,7 +86,7 @@ export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ duration: 0.3, delay: 0.05, ease: 'easeOut' }}
       >
         <Card className="bg-bg-surface border-bg-elevated">
           <CardContent className="p-4 sm:p-5">
@@ -101,9 +99,7 @@ export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: `${habit.color}20` }}
                     >
-                      <span className="text-sm" style={{ color: habit.color }}>
-                        🎯
-                      </span>
+                      <span className="text-sm">{habit.icon}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-text-primary truncate">{habit.title}</p>

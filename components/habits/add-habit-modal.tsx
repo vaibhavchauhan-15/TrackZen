@@ -1,67 +1,142 @@
 'use client'
 
-import { useState } from 'react'
+/**
+ * HabitModal — unified create + edit panel
+ *
+ * Create mode: pass no `habit` prop (or null). Shows "New Habit" header,
+ *              "Create Habit" button, resets form on close.
+ * Edit   mode: pass a `habit` object. Shows "Edit Habit" header,
+ *              "Save Changes" button, pre-populates form from the habit.
+ *
+ * The `onSave` callback receives `(data, habitId?)`.
+ * If `habitId` is present it's an update, otherwise it's a create.
+ */
+
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { FloatingAddButton } from '@/components/ui/floating-add-button'
+import { Habit } from './types'
 
 const emojiOptions = ['🎯', '🧘', '📖', '💪', '💧', '✍️', '🏃', '🧠', '💤', '🥗', '🎵', '📱', '🌅', '🧹', '🚀']
 const colorOptions = ['#7C3AED', '#10B981', '#EF4444', '#F59E0B', '#06B6D4', '#EC4899', '#F97316', '#14B8A6', '#6366F1', '#3B82F6']
 const categoryOptions = ['Health', 'Fitness', 'Learning', 'Productivity', 'Wellness', 'Finance', 'Social', 'Custom']
 
-interface AddHabitModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onAdd: (habit: any) => Promise<void>
+const DEFAULTS = {
+  title: '',
+  description: '',
+  frequency: 'daily' as const,
+  priority: 2 as 1 | 2 | 3,
+  icon: '🎯',
+  color: '#7C3AED',
+  category: 'Health',
+  timeSlot: '',
 }
 
-export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
-  const [loading, setLoading] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily')
-  const [priority, setPriority] = useState<1 | 2 | 3>(2)
-  const [icon, setIcon] = useState('🎯')
-  const [color, setColor] = useState('#7C3AED')
-  const [category, setCategory] = useState('Health')
-  const [timeSlot, setTimeSlot] = useState('')
+// ─── Form data type ───────────────────────────────────────────────────────────
 
-  const handleSubmit = async () => {
+interface HabitFormData {
+  title: string
+  description: string
+  icon: string
+  frequency: 'daily' | 'weekly' | 'monthly'
+  priority: 1 | 2 | 3
+  color: string
+  category: string
+  timeSlot: string
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface HabitModalProps {
+  isOpen: boolean
+  onClose: () => void
+  /** Passing a habit switches to edit mode; omit / pass null for create mode */
+  habit?: Habit | null
+  onSave: (data: HabitFormData, habitId?: string) => Promise<void>
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function HabitModal({ isOpen, onClose, habit, onSave }: HabitModalProps) {
+  const isEdit = !!habit
+
+  const [loading, setLoading] = useState(false)
+  const [title, setTitle] = useState(DEFAULTS.title)
+  const [description, setDescription] = useState(DEFAULTS.description)
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>(DEFAULTS.frequency)
+  const [priority, setPriority] = useState<1 | 2 | 3>(DEFAULTS.priority)
+  const [icon, setIcon] = useState(DEFAULTS.icon)
+  const [color, setColor] = useState(DEFAULTS.color)
+  const [category, setCategory] = useState(DEFAULTS.category)
+  const [timeSlot, setTimeSlot] = useState(DEFAULTS.timeSlot)
+
+  // Populate / reset form whenever the target habit changes
+  useEffect(() => {
+    if (habit) {
+      setTitle(habit.title)
+      setDescription(habit.description || '')
+      setFrequency(habit.frequency)
+      setPriority((habit.priority as 1 | 2 | 3) || 2)
+      setIcon(habit.icon)
+      setColor(habit.color)
+      setCategory(habit.category)
+      setTimeSlot(habit.timeSlot || '')
+    } else {
+      setTitle(DEFAULTS.title)
+      setDescription(DEFAULTS.description)
+      setFrequency(DEFAULTS.frequency)
+      setPriority(DEFAULTS.priority)
+      setIcon(DEFAULTS.icon)
+      setColor(DEFAULTS.color)
+      setCategory(DEFAULTS.category)
+      setTimeSlot(DEFAULTS.timeSlot)
+    }
+  }, [habit])
+
+  const handleClose = useCallback(() => {
+    if (!isEdit) {
+      // Reset create-mode form so it's clean next time
+      setTitle(DEFAULTS.title)
+      setDescription(DEFAULTS.description)
+      setFrequency(DEFAULTS.frequency)
+      setPriority(DEFAULTS.priority)
+      setIcon(DEFAULTS.icon)
+      setColor(DEFAULTS.color)
+      setCategory(DEFAULTS.category)
+      setTimeSlot(DEFAULTS.timeSlot)
+    }
+    onClose()
+  }, [isEdit, onClose])
+
+  const handleSubmit = useCallback(async () => {
     if (!title.trim()) return
     setLoading(true)
-    
     try {
-      await onAdd({
-        title: title.trim(),
-        description: description.trim() || null,
-        icon,
-        frequency,
-        priority,
-        color,
-        category,
-        timeSlot: timeSlot || null,
-      })
-      
-      // Reset form
-      setTitle('')
-      setDescription('')
-      setFrequency('daily')
-      setPriority(2)
-      setIcon('🎯')
-      setColor('#7C3AED')
-      setCategory('Health')
-      setTimeSlot('')
-      onClose()
-    } catch (error) {
-      console.error('Failed to add habit:', error)
+      await onSave(
+        {
+          title: title.trim(),
+          description: description.trim() || '',
+          icon,
+          frequency,
+          priority,
+          color,
+          category,
+          timeSlot,
+        },
+        habit?.id,
+      )
+      handleClose()
+    } catch (err) {
+      console.error(isEdit ? 'Failed to update habit:' : 'Failed to create habit:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [title, description, icon, frequency, priority, color, category, timeSlot, habit?.id, isEdit, onSave, handleClose])
 
   return (
     <AnimatePresence>
@@ -72,11 +147,12 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-bg-base/60 backdrop-blur-sm z-50"
-            onClick={onClose}
+            onClick={handleClose}
           />
-          
-          {/* Slide-in Panel */}
+
+          {/* Slide-in panel */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -87,13 +163,21 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
             <div className="p-5 sm:p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-text-primary">New Habit</h2>
-                <button
-                  onClick={onClose}
+                <div>
+                  <h2 className="text-xl font-bold text-text-primary">
+                    {isEdit ? 'Edit Habit' : 'New Habit'}
+                  </h2>
+                  {isEdit && (
+                    <p className="text-xs text-text-muted mt-0.5">Update your habit details</p>
+                  )}
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleClose}
                   className="w-8 h-8 rounded-lg bg-bg-elevated flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
                 >
                   <X size={16} />
-                </button>
+                </motion.button>
               </div>
 
               <div className="space-y-5">
@@ -107,6 +191,7 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Morning Meditation"
                     maxLength={60}
+                    autoFocus={isOpen}
                     className="bg-bg-elevated border-bg-elevated text-text-primary placeholder:text-text-muted focus:ring-accent-purple/50"
                   />
                 </div>
@@ -133,8 +218,9 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                   </Label>
                   <div className="flex flex-wrap gap-2">
                     {emojiOptions.map((e) => (
-                      <button
+                      <motion.button
                         key={e}
+                        whileTap={{ scale: 0.88 }}
                         onClick={() => setIcon(e)}
                         className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all ${
                           icon === e
@@ -143,7 +229,7 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                         }`}
                       >
                         {e}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -155,11 +241,14 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                   </Label>
                   <div className="flex gap-2 flex-wrap">
                     {colorOptions.map((c) => (
-                      <button
+                      <motion.button
                         key={c}
+                        whileTap={{ scale: 0.88 }}
                         onClick={() => setColor(c)}
                         className={`w-8 h-8 rounded-full transition-all ${
-                          color === c ? 'ring-2 ring-offset-2 ring-offset-bg-surface ring-text-primary scale-110' : 'hover:scale-110'
+                          color === c
+                            ? 'ring-2 ring-offset-2 ring-offset-bg-surface ring-text-primary scale-110'
+                            : 'hover:scale-110'
                         }`}
                         style={{ backgroundColor: c }}
                       />
@@ -174,8 +263,9 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                   </Label>
                   <div className="flex gap-2 flex-wrap">
                     {categoryOptions.map((cat) => (
-                      <button
+                      <motion.button
                         key={cat}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => setCategory(cat)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           category === cat
@@ -184,7 +274,7 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                         }`}
                       >
                         {cat}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -196,8 +286,9 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                   </Label>
                   <div className="flex gap-2">
                     {(['daily', 'weekly', 'monthly'] as const).map((f) => (
-                      <button
+                      <motion.button
                         key={f}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => setFrequency(f)}
                         className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
                           frequency === f
@@ -206,7 +297,7 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                         }`}
                       >
                         {f}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -222,8 +313,9 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                       { value: 2, label: 'Medium', color: 'bg-accent-orange' },
                       { value: 3, label: 'Low', color: 'bg-accent-purple' },
                     ] as const).map((p) => (
-                      <button
+                      <motion.button
                         key={p.value}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => setPriority(p.value)}
                         className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                           priority === p.value
@@ -232,7 +324,7 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                         }`}
                       >
                         {p.label}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -250,14 +342,42 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
                   />
                 </div>
 
-                {/* Submit Button */}
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!title.trim() || loading}
-                  className="w-full py-3 bg-accent-purple hover:bg-accent-purple/90 text-white font-semibold mt-4"
-                >
-                  {loading ? 'Creating...' : 'Create Habit'}
-                </Button>
+                {/* Action Buttons */}
+                <div className={`flex gap-3 mt-4 ${isEdit ? '' : ''}`}>
+                  {isEdit && (
+                    <Button
+                      onClick={handleClose}
+                      variant="ghost"
+                      className="flex-1 py-3 bg-bg-elevated text-text-secondary hover:text-text-primary"
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!title.trim() || loading}
+                    className={`${isEdit ? 'flex-1' : 'w-full'} py-3 bg-accent-purple hover:bg-accent-purple/90 text-white font-semibold`}
+                  >
+                    {loading ? (
+                      <motion.span
+                        animate={{ opacity: [1, 0.5, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      >
+                        {isEdit ? 'Saving…' : 'Creating…'}
+                      </motion.span>
+                    ) : isEdit ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Save size={14} />
+                        Save Changes
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Plus size={14} />
+                        Create Habit
+                      </span>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -266,6 +386,9 @@ export function AddHabitModal({ isOpen, onClose, onAdd }: AddHabitModalProps) {
     </AnimatePresence>
   )
 }
+
+// Keep legacy named exports so existing imports don't break
+export { HabitModal as AddHabitModal }
 
 export function AddHabitFAB({ onClick }: { onClick: () => void }) {
   return <FloatingAddButton onClick={onClick} title="Add New Habit" />

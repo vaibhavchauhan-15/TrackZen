@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { useSWRConfig } from 'swr'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { CardSkeleton } from '@/components/ui/loading-spinner'
-import { useDashboard } from '@/components/providers/dashboard-provider'
-import { revalidateDashboard, revalidateHabits } from '@/lib/hooks/use-swr-api'
+import { useHabits, useToggleHabit, useCreateHabit, API_KEYS } from '@/lib/hooks/use-swr-api'
+import HabitsLoading from './loading'
 
 // Import new habit components
 import { Habit, HabitLog, FrequencyTab, HabitStats } from '@/components/habits/types'
@@ -14,11 +14,16 @@ import { WelcomeBanner } from '@/components/habits/welcome-banner'
 import { FrequencyTabs } from '@/components/habits/frequency-tabs'
 import { HabitList } from '@/components/habits/habit-list'
 import { WeeklyOverview } from '@/components/habits/weekly-overview'
-import { AddHabitModal, AddHabitFAB } from '@/components/habits/add-habit-modal'
+import { HabitModal, AddHabitFAB } from '@/components/habits/add-habit-modal'
 
 export default function HabitsPage() {
-  const { data, loading, refetch, toggleHabit } = useDashboard()
-  const [modalOpen, setModalOpen] = useState(false)
+  const { data, isLoading: loading } = useHabits()
+  const { trigger: triggerToggle } = useToggleHabit()
+  const { trigger: createHabit } = useCreateHabit()
+  // Bound mutate — shares the custom SWR cache provider, so optimistic updates are instant
+  const { mutate } = useSWRConfig()
+  // Single modal state — habit=null → create mode, habit≠null → edit mode
+  const [modal, setModal] = useState<{ open: boolean; habit: Habit | null }>({ open: false, habit: null })
   const [activeTab, setActiveTab] = useState<FrequencyTab>('daily')
 
   // Transform data to match the habit types
@@ -55,6 +60,21 @@ export default function HabitsPage() {
     }))
   }, [data?.todayLogs])
 
+  // Flatten weekly logs for WeeklyOverview
+  const weeklyLogs: HabitLog[] = useMemo(() => {
+    const weeklyLogsMap = data?.weeklyLogs || {}
+    return Object.entries(weeklyLogsMap).flatMap(([habitId, logArr]: [string, any]) =>
+      (logArr as any[]).map((log: any) => ({
+        id: log.id || `${habitId}-${log.date}`,
+        habitId,
+        userId: log.userId,
+        date: log.date,
+        status: log.status,
+        note: log.note,
+      }))
+    )
+  }, [data?.weeklyLogs])
+
   // Filter habits by active tab
   const filteredHabits = useMemo(() => {
     return habits.filter((h) => h.isActive && h.frequency === activeTab)
@@ -80,63 +100,81 @@ export default function HabitsPage() {
   }, [habits, logs])
 
   const handleToggleHabit = useCallback(async (habitId: string) => {
-    try {
-      await toggleHabit(habitId)
-    } catch (error) {
-      console.error('Failed to toggle habit:', error)
-    }
-  }, [toggleHabit])
+    await triggerToggle({ habitId })
+  }, [triggerToggle])
 
-  const handleAddHabit = useCallback(async (habitData: any) => {
-    try {
-      const res = await fetch('/api/habits', {
-        method: 'POST',
+  // Opens modal in edit mode
+  const handleEditHabit = useCallback((habit: Habit) => {
+    setModal({ open: true, habit })
+  }, [])
+
+  /**
+   * Unified save handler for both create and edit.
+   * When habitId is provided → edit (with optimistic update for instant UI).
+   * When habitId is absent  → create.
+   */
+  const handleSaveHabit = useCallback(async (formData: any, habitId?: string) => {
+    if (habitId) {
+      // ── EDIT: optimistically patch the SWR cache so the card updates immediately ──
+      mutate(
+        API_KEYS.habits,
+        (current: any) => ({
+          ...current,
+          habits: current?.habits?.map((h: any) =>
+            h.id === habitId ? { ...h, ...formData } : h
+          ) ?? [],
+        }),
+        { revalidate: false },
+      )
+      // Fire API in the background — don't await, modal closes instantly
+      fetch(`/api/habits/${habitId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(habitData),
+        body: JSON.stringify(formData),
+      }).then(async (res) => {
+        if (!res.ok) {
+          mutate(API_KEYS.habits) // server rejected — rollback optimistic update
+        } else {
+          mutate(API_KEYS.habits)     // keep cache fresh (streaks etc.)
+          mutate(API_KEYS.dashboard)
+        }
+      }).catch(() => {
+        mutate(API_KEYS.habits) // network error — rollback
       })
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to create habit')
-      }
-
-      // Revalidate caches after creating habit
-      revalidateHabits()
-      revalidateDashboard()
-      await refetch()
-    } catch (error) {
-      console.error('Failed to add habit:', error)
-      throw error
+      // Return immediately — modal closes without waiting for the server
+    } else {
+      // ── CREATE ──
+      await createHabit(formData)
     }
-  }, [refetch])
+  }, [mutate, createHabit])
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-24 rounded-xl bg-bg-surface animate-pulse" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="h-24 rounded-xl bg-bg-surface animate-pulse" />
-          <div className="h-24 rounded-xl bg-bg-surface animate-pulse" />
-          <div className="h-24 rounded-xl bg-bg-surface animate-pulse" />
-          <div className="h-24 rounded-xl bg-bg-surface animate-pulse" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <CardSkeleton count={3} />
-          </div>
-          <div className="space-y-4">
-            <div className="h-40 rounded-xl bg-bg-surface animate-pulse" />
-            <div className="h-40 rounded-xl bg-bg-surface animate-pulse" />
-          </div>
-        </div>
-      </div>
+  const handleDeleteHabit = useCallback(async (habitId: string) => {
+    // Optimistically remove from cache
+    await mutate(
+      API_KEYS.habits,
+      (current: any) => ({
+        ...current,
+        habits: current?.habits?.filter((h: any) => h.id !== habitId) ?? [],
+      }),
+      { revalidate: false }
     )
-  }
+    try {
+      const res = await fetch(`/api/habits/${habitId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete habit')
+      mutate(API_KEYS.habits)
+      mutate(API_KEYS.dashboard)
+    } catch {
+      // Rollback by revalidating on error
+      mutate(API_KEYS.habits)
+    }
+  }, [mutate])
+
+  if (loading) return <HabitsLoading />
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-24">
       {/* Welcome Banner */}
-      <WelcomeBanner remainingToday={stats.remainingToday} onAddHabit={() => setModalOpen(true)} />
+      <WelcomeBanner remainingToday={stats.remainingToday} onAddHabit={() => setModal({ open: true, habit: null })} />
       
       {/* Stats Cards */}
       <StatsCards stats={stats} />
@@ -150,25 +188,30 @@ export default function HabitsPage() {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => setModalOpen(true)}
+              onClick={() => setModal({ open: true, habit: null })}
               className="hidden sm:flex text-accent-purple hover:text-accent-purple/80 hover:bg-accent-purple/10 w-fit"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add Habit
             </Button>
           </div>
-          <HabitList habits={filteredHabits} logs={logs} onToggle={handleToggleHabit} />
+          <HabitList habits={filteredHabits} todayLogs={logs} weeklyLogs={weeklyLogs} onToggle={handleToggleHabit} onEdit={handleEditHabit} onDelete={handleDeleteHabit} />
         </div>
 
         {/* Sidebar - Weekly Overview */}
         <div>
-          <WeeklyOverview habits={habits} logs={logs} />
+          <WeeklyOverview habits={habits} logs={weeklyLogs} />
         </div>
       </div>
 
-      {/* FAB and Modal */}
-      <AddHabitFAB onClick={() => setModalOpen(true)} />
-      <AddHabitModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onAdd={handleAddHabit} />
+      {/* FAB and unified modal */}
+      <AddHabitFAB onClick={() => setModal({ open: true, habit: null })} />
+      <HabitModal
+        isOpen={modal.open}
+        habit={modal.habit}
+        onClose={() => setModal({ open: false, habit: null })}
+        onSave={handleSaveHabit}
+      />
     </div>
   )
 }

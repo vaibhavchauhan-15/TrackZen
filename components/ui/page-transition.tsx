@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
-import { ReactNode } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 
 const pageVariants = {
   initial: { opacity: 0 },
@@ -18,6 +18,17 @@ const pageTransition = {
 
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // During SSR and first hydration render, output the same plain div the
+  // server produced — no framer-motion wrappers that would cause a mismatch.
+  if (!mounted) {
+    return <div className="h-full">{children}</div>
+  }
 
   return (
     <AnimatePresence mode="popLayout" initial={false}>

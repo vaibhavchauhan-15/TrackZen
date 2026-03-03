@@ -70,7 +70,6 @@ export default function NewPlanPage() {
   const [streamStats, setStreamStats] = useState({ topics: 0, subtopics: 0, hours: 0 })
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Field validation function
   const validateField = (field: keyof FieldErrors, value: any): string | undefined => {
     switch (field) {
       case 'title':
@@ -98,18 +97,6 @@ export default function NewPlanPage() {
   const handleFieldBlur = (field: keyof FieldErrors, value: any) => {
     const error = validateField(field, value)
     setFieldErrors(prev => ({ ...prev, [field]: error }))
-  }
-
-  // Validate all fields before submit
-  const validateAllFields = (): boolean => {
-    const errors: FieldErrors = {
-      title: validateField('title', planData.title),
-      startDate: validateField('startDate', startDate),
-      endDate: validateField('endDate', endDate),
-      dailyHours: validateField('dailyHours', planData.dailyHours),
-    }
-    setFieldErrors(errors)
-    return !Object.values(errors).some(Boolean)
   }
 
   const handleAIGenerate = useCallback(async () => {
@@ -375,28 +362,6 @@ export default function NewPlanPage() {
     const subtopicTotal = newTopics[topicIndex].subtopics.reduce((sum, st) => sum + (st.estimatedHours || 0), 0)
     newTopics[topicIndex].estimatedHours = subtopicTotal
     setTopics(newTopics)
-  }
-
-  const getPriorityLabel = (priority: number) => {
-    switch (priority) {
-      case 1: return 'Highest'
-      case 2: return 'High'
-      case 3: return 'Medium'
-      case 4: return 'Low'
-      case 5: return 'Lowest'
-      default: return 'Medium'
-    }
-  }
-
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 1: return 'text-red-500'
-      case 2: return 'text-orange-500'
-      case 3: return 'text-yellow-500'
-      case 4: return 'text-blue-500'
-      case 5: return 'text-gray-500'
-      default: return 'text-yellow-500'
-    }
   }
 
   // Calculate total hours - subtopics are parts of topic hours
