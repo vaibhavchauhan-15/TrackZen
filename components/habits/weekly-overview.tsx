@@ -2,9 +2,14 @@
 
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Habit, HabitLog } from './types'
+
+// Stable day-name lookup — avoids locale-dependent toLocaleDateString which
+// can produce different strings on the Node.js server vs the browser (ICU
+// version mismatch) and therefore trigger a React hydration error.
+const SHORT_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 interface WeeklyOverviewProps {
   habits: Habit[]
@@ -12,6 +17,13 @@ interface WeeklyOverviewProps {
 }
 
 export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
+  // Defer today to client-side to prevent hydration mismatch when the
+  // server UTC date differs from the browser's local date.
+  const [today, setToday] = useState('')
+  useEffect(() => {
+    setToday(new Date().toISOString().split('T')[0])
+  }, [])
+
   const { dayRates, weekAvg, topHabits } = useMemo(() => {
     const active = habits.filter((h) => h.isActive)
     const days = Array.from({ length: 7 }, (_, i) => {
@@ -19,7 +31,8 @@ export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
       d.setDate(d.getDate() - (6 - i))
       return {
         date: d.toISOString().split('T')[0],
-        dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        // Use stable lookup instead of toLocaleDateString to avoid ICU mismatch
+        dayName: SHORT_DAY_NAMES[d.getDay()],
         dayNum: d.getDate(),
       }
     })
@@ -39,8 +52,7 @@ export function WeeklyOverview({ habits, logs }: WeeklyOverviewProps) {
     return { dayRates, weekAvg, topHabits }
   }, [habits, logs])
 
-  const today = new Date().toISOString().split('T')[0]
-  const isToday = (date: string) => date === today
+  const isToday = (date: string) => today !== '' && date === today
 
   return (
     <div className="space-y-4">

@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { FloatingAddButton } from '@/components/ui/floating-add-button'
+import { ClockTimePicker } from '@/components/ui/clock-time-picker'
 import { Habit } from './types'
 
 const emojiOptions = ['🎯', '🧘', '📖', '💪', '💧', '✍️', '🏃', '🧠', '💤', '🥗', '🎵', '📱', '🌅', '🧹', '🚀']
@@ -148,7 +149,7 @@ export function HabitModal({ isOpen, onClose, habit, onSave }: HabitModalProps) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-bg-base/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-bg-base/60 backdrop-blur-sm z-[60]"
             onClick={handleClose}
           />
 
@@ -158,9 +159,9 @@ export function HabitModal({ isOpen, onClose, habit, onSave }: HabitModalProps) 
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-bg-surface border-l border-bg-elevated z-50 overflow-y-auto"
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-bg-surface border-l border-bg-elevated z-[60] overflow-y-auto"
           >
-            <div className="p-5 sm:p-6">
+            <div className="p-5 sm:p-6 pb-24 sm:pb-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -334,11 +335,9 @@ export function HabitModal({ isOpen, onClose, habit, onSave }: HabitModalProps) 
                   <Label className="text-xs font-medium text-text-muted uppercase tracking-wider mb-1.5 block">
                     Time Slot (Optional)
                   </Label>
-                  <Input
-                    type="time"
+                  <ClockTimePicker
                     value={timeSlot}
-                    onChange={(e) => setTimeSlot(e.target.value)}
-                    className="bg-bg-elevated border-bg-elevated text-text-primary focus:ring-accent-purple/50"
+                    onChange={setTimeSlot}
                   />
                 </div>
 

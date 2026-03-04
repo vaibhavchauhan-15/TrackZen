@@ -38,10 +38,12 @@ export function MobileBottomNav() {
 
   const user = session?.user
   const streak = data?.streak?.current ?? 0
-  const streakTheme = useMemo(() => getStreakTheme(streak), [streak])
-  
+
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
+
+  // Gate on mounted so first render matches the server (streak=0 → neutral color)
+  const streakTheme = useMemo(() => getStreakTheme(mounted ? streak : 0), [streak, mounted])
 
   const initials = useMemo(() => {
     if (!user?.name) return 'U'
@@ -192,6 +194,7 @@ export function MobileBottomNav() {
                 height={28}
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
+                priority
                 unoptimized
               />
             ) : (

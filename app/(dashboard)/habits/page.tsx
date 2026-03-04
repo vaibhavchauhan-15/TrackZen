@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useSWRConfig } from 'swr'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,11 @@ export default function HabitsPage() {
   const { data, isLoading: loading } = useHabits()
   const { trigger: triggerToggle } = useToggleHabit()
   const { trigger: createHabit } = useCreateHabit()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   // Bound mutate — shares the custom SWR cache provider, so optimistic updates are instant
   const { mutate } = useSWRConfig()
   // Single modal state — habit=null → create mode, habit≠null → edit mode
@@ -169,7 +174,7 @@ export default function HabitsPage() {
     }
   }, [mutate])
 
-  if (loading) return <HabitsLoading />
+  if (!mounted || loading) return <HabitsLoading />
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-24">

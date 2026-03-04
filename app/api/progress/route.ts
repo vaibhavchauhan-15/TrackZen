@@ -1,37 +1,33 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/api/auth-guard'
+import { ok, err, badRequest, notFound, forbidden } from '@/lib/api/response'
 import { db } from '@/lib/db'
 import { dailyProgress, dailyStudyLogs, topics, plans } from '@/lib/db/schema'
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
 
 /**
  * OPTIMIZED Progress API
- * 
- * GET: Get progress data for date range
- * POST: Log daily progress/study hours
- * 
- * Performance optimizations:
- * 1. Efficient date range queries
- * 2. Aggregated statistics
- * 3. Batch operations
+ *
+ * GET  — Progress data for a date range (SQL-level filtering)
+ * POST — Log daily progress (upsert pattern)
+ *
+ * Professional patterns:
+ * - planId filter pushed to SQL (no JS post-filter)
+ * - SQL aggregation for summary stats
+ * - Single-pass grouping by date
+ * - Upsert helper with minimal queries
  */
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/progress - Get progress data
+// ── GET /api/progress ────────────────────────────────────────────
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
 
-    const userId = session.user.id
     const { searchParams } = new URL(request.url)
-    
-    // Default to last 30 days
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0]
     const startDate = searchParams.get('startDate') || (() => {
       const d = new Date()
@@ -40,51 +36,50 @@ export async function GET(request: Request) {
     })()
     const planId = searchParams.get('planId')
 
-    // Build query conditions
+    // Build WHERE conditions — push planId filter to SQL
     const conditions = [
       eq(dailyProgress.userId, userId),
       gte(dailyProgress.date, startDate),
       lte(dailyProgress.date, endDate),
     ]
+    if (planId) conditions.push(eq(topics.planId, planId))
 
-    // Get daily progress entries
-    const progress = await db.select({
-      id: dailyProgress.id,
-      date: dailyProgress.date,
-      hoursSpent: dailyProgress.hoursSpent,
-      completionPct: dailyProgress.completionPct,
-      notes: dailyProgress.notes,
-      topicId: dailyProgress.topicId,
-      topicTitle: topics.title,
-      planId: topics.planId,
-    })
-    .from(dailyProgress)
-    .innerJoin(topics, eq(dailyProgress.topicId, topics.id))
-    .where(and(...conditions))
-    .orderBy(desc(dailyProgress.date))
+    // Single query with JOIN — no JS post-filter needed
+    const progress = await db
+      .select({
+        id: dailyProgress.id,
+        date: dailyProgress.date,
+        hoursSpent: dailyProgress.hoursSpent,
+        completionPct: dailyProgress.completionPct,
+        notes: dailyProgress.notes,
+        topicId: dailyProgress.topicId,
+        topicTitle: topics.title,
+        planId: topics.planId,
+      })
+      .from(dailyProgress)
+      .innerJoin(topics, eq(dailyProgress.topicId, topics.id))
+      .where(and(...conditions))
+      .orderBy(desc(dailyProgress.date))
 
-    // Filter by planId if provided
-    const filtered = planId 
-      ? progress.filter(p => p.planId === planId)
-      : progress
+    // Single-pass aggregation
+    let totalHours = 0
+    const daysSet = new Set<string>()
+    const byDate: Record<string, { hours: number; topics: number; entries: typeof progress }> = {}
 
-    // Calculate aggregates
-    const totalHours = filtered.reduce((sum, p) => sum + (p.hoursSpent || 0), 0)
-    const daysActive = new Set(filtered.map(p => p.date)).size
+    for (const p of progress) {
+      const hours = p.hoursSpent || 0
+      totalHours += hours
+      daysSet.add(p.date)
+      const day = (byDate[p.date] ??= { hours: 0, topics: 0, entries: [] })
+      day.hours += hours
+      day.topics++
+      day.entries.push(p)
+    }
 
-    // Group by date
-    const byDate: Record<string, { hours: number; topics: number; entries: typeof filtered }> = {}
-    filtered.forEach(p => {
-      if (!byDate[p.date]) {
-        byDate[p.date] = { hours: 0, topics: 0, entries: [] }
-      }
-      byDate[p.date].hours += p.hoursSpent || 0
-      byDate[p.date].topics++
-      byDate[p.date].entries.push(p)
-    })
+    const daysActive = daysSet.size
 
-    return NextResponse.json({
-      progress: filtered,
+    return ok({
+      progress,
       summary: {
         totalHours: Math.round(totalHours * 10) / 10,
         daysActive,
@@ -94,63 +89,56 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Progress GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch progress' }, { status: 500 })
+    return err('Failed to fetch progress')
   }
 }
 
-// POST /api/progress - Log daily progress
+// ── POST /api/progress ───────────────────────────────────────────
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
 
-    const userId = session.user.id
     const body = await request.json()
-
     const { topicId, date, hoursSpent, completionPct, notes } = body
     const logDate = date || new Date().toISOString().split('T')[0]
 
-    if (!topicId) {
-      return NextResponse.json({ error: 'Topic ID is required' }, { status: 400 })
-    }
+    if (!topicId) return badRequest('Topic ID is required')
 
-    // Verify topic exists and user owns the plan
-    const topicWithPlan = await db.select({
-      topic: topics,
-      planUserId: plans.userId,
-      planId: plans.id,
-    })
-    .from(topics)
-    .innerJoin(plans, eq(topics.planId, plans.id))
-    .where(eq(topics.id, topicId))
-    .limit(1)
+    // Verify topic ownership via JOIN — single query
+    const [topicRow] = await db
+      .select({
+        topicId: topics.id,
+        planUserId: plans.userId,
+        planId: plans.id,
+      })
+      .from(topics)
+      .innerJoin(plans, eq(topics.planId, plans.id))
+      .where(eq(topics.id, topicId))
+      .limit(1)
 
-    if (topicWithPlan.length === 0) {
-      return NextResponse.json({ error: 'Topic not found' }, { status: 404 })
-    }
+    if (!topicRow) return notFound('Topic not found')
+    if (topicRow.planUserId !== userId) return forbidden('Unauthorized')
 
-    if (topicWithPlan[0].planUserId !== userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
-
-    // Check for existing log
-    const [existingLog] = await db.select()
+    // Upsert: check existing + create/update
+    const [existingLog] = await db
+      .select({ id: dailyProgress.id, hoursSpent: dailyProgress.hoursSpent, completionPct: dailyProgress.completionPct, notes: dailyProgress.notes })
       .from(dailyProgress)
-      .where(and(
-        eq(dailyProgress.topicId, topicId),
-        eq(dailyProgress.userId, userId),
-        eq(dailyProgress.date, logDate)
-      ))
+      .where(
+        and(
+          eq(dailyProgress.topicId, topicId),
+          eq(dailyProgress.userId, userId),
+          eq(dailyProgress.date, logDate),
+        ),
+      )
       .limit(1)
 
     let resultLog
 
     if (existingLog) {
-      // Update existing
-      const [updated] = await db.update(dailyProgress)
+      const [updated] = await db
+        .update(dailyProgress)
         .set({
           hoursSpent: hoursSpent !== undefined ? hoursSpent : existingLog.hoursSpent,
           completionPct: completionPct !== undefined ? completionPct : existingLog.completionPct,
@@ -160,64 +148,72 @@ export async function POST(request: Request) {
         .returning()
       resultLog = updated
     } else {
-      // Create new
-      const [created] = await db.insert(dailyProgress).values({
-        userId,
-        topicId,
-        date: logDate,
-        hoursSpent: hoursSpent || 0,
-        completionPct: completionPct || 0,
-        notes: notes || null,
-      }).returning()
+      const [created] = await db
+        .insert(dailyProgress)
+        .values({
+          userId,
+          topicId,
+          date: logDate,
+          hoursSpent: hoursSpent || 0,
+          completionPct: completionPct || 0,
+          notes: notes || null,
+        })
+        .returning()
       resultLog = created
     }
 
-    // Also update daily study log for the plan
-    await updateDailyStudyLog(userId, topicWithPlan[0].planId, logDate)
+    // Update aggregate daily study log (fire-and-forget for speed)
+    updateDailyStudyLog(userId, topicRow.planId, logDate).catch(e =>
+      console.error('Daily study log update failed:', e),
+    )
 
-    return NextResponse.json({ progress: resultLog })
+    return ok({ progress: resultLog }, { noCache: true })
   } catch (error) {
     console.error('Progress POST error:', error)
-    return NextResponse.json({ error: 'Failed to log progress' }, { status: 500 })
+    return err('Failed to log progress')
   }
 }
 
-// Helper to update daily study log aggregate
+// ── Helper: update daily study log aggregate ─────────────────────
 async function updateDailyStudyLog(userId: string, planId: string, date: string) {
-  // Get all progress for this plan and date
-  const dayProgress = await db.select({
-    hoursSpent: dailyProgress.hoursSpent,
-    completionPct: dailyProgress.completionPct,
-  })
-  .from(dailyProgress)
-  .innerJoin(topics, eq(dailyProgress.topicId, topics.id))
-  .where(and(
-    eq(topics.planId, planId),
-    eq(dailyProgress.userId, userId),
-    eq(dailyProgress.date, date)
-  ))
+  // Get aggregate stats for this plan+date in single query
+  const [stats] = await db
+    .select({
+      totalHours: sql<number>`COALESCE(SUM(${dailyProgress.hoursSpent}), 0)`.as('totalHours'),
+      topicsWorked: sql<number>`COUNT(*)`.as('topicsWorked'),
+      topicsCompleted: sql<number>`SUM(CASE WHEN ${dailyProgress.completionPct} = 100 THEN 1 ELSE 0 END)`.as('topicsCompleted'),
+    })
+    .from(dailyProgress)
+    .innerJoin(topics, eq(dailyProgress.topicId, topics.id))
+    .where(
+      and(
+        eq(topics.planId, planId),
+        eq(dailyProgress.userId, userId),
+        eq(dailyProgress.date, date),
+      ),
+    )
 
-  const totalHours = dayProgress.reduce((sum, p) => sum + (p.hoursSpent || 0), 0)
-  const topicsWorkedOn = dayProgress.length
-  const topicsCompleted = dayProgress.filter(p => p.completionPct === 100).length
+  const totalHours = Number(stats?.totalHours) || 0
+  const topicsCompleted = Number(stats?.topicsCompleted) || 0
 
   // Upsert daily study log
-  const [existingStudyLog] = await db.select()
+  const [existing] = await db
+    .select({ id: dailyStudyLogs.id })
     .from(dailyStudyLogs)
-    .where(and(
-      eq(dailyStudyLogs.planId, planId),
-      eq(dailyStudyLogs.userId, userId),
-      eq(dailyStudyLogs.date, date)
-    ))
+    .where(
+      and(
+        eq(dailyStudyLogs.planId, planId),
+        eq(dailyStudyLogs.userId, userId),
+        eq(dailyStudyLogs.date, date),
+      ),
+    )
     .limit(1)
 
-  if (existingStudyLog) {
-    await db.update(dailyStudyLogs)
-      .set({
-        actualHours: totalHours,
-        topicsCompleted: topicsCompleted,
-      })
-      .where(eq(dailyStudyLogs.id, existingStudyLog.id))
+  if (existing) {
+    await db
+      .update(dailyStudyLogs)
+      .set({ actualHours: totalHours, topicsCompleted })
+      .where(eq(dailyStudyLogs.id, existing.id))
   } else {
     await db.insert(dailyStudyLogs).values({
       userId,
@@ -225,7 +221,7 @@ async function updateDailyStudyLog(userId: string, planId: string, date: string)
       date,
       plannedHours: 0,
       actualHours: totalHours,
-      topicsCompleted: topicsCompleted,
+      topicsCompleted,
       revisionDone: false,
     })
   }

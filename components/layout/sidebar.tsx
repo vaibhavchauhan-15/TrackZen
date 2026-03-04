@@ -1,66 +1,166 @@
 'use client'
 
+import { useMemo, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard,
   Calendar,
   Target,
   Flame,
-  LogOut,
+  ChevronLeft,
 } from 'lucide-react'
-import { signOut, useSession } from 'next-auth/react'
+import { cn } from '@/lib/utils'
+import { useSidebar } from '@/components/providers/sidebar-provider'
 import { useDashboard } from '@/components/providers/dashboard-provider'
-import { useState, useCallback, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
 
-/* ── Navigation config ─────────────────────────────── */
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Planner',   href: '/planner',   icon: Calendar },
-  { name: 'Habits',    href: '/habits',    icon: Target },
-] as const
+// ── Types ─────────────────────────────────────────────────────────────────
 
-/* ── Streak color helper ───────────────────────────── */
-const getStreakTheme = (s: number) =>
-  s === 0  ? { color: '#6b7280', glow: 'rgba(107,114,128,0.25)' } :
-  s <= 2   ? { color: '#f87171', glow: 'rgba(248,113,113,0.30)' } :
-  s <= 6   ? { color: '#fb923c', glow: 'rgba(251,146,60,0.30)' }  :
-  s <= 13  ? { color: '#facc15', glow: 'rgba(250,204,21,0.30)' }  :
-  s <= 29  ? { color: '#c084fc', glow: 'rgba(192,132,252,0.30)' } :
-             { color: '#22d3ee', glow: 'rgba(34,211,238,0.30)' }
-
-/* ── Constants ─────────────────────────────────────── */
-const NAV_ITEM_H    = 48   // px
-const NAV_GAP       = 8    // px  (gap-2 = 0.5rem = 8px)
-const INDICATOR_TOP = (i: number) => i * (NAV_ITEM_H + NAV_GAP)
-
-/* ═══════════════════════════════════════════════════════
-   Sidebar Props
-   ═══════════════════════════════════════════════════════ */
-interface SidebarProps {
-  isOpen?: boolean
-  onClose?: () => void
+interface NavItem {
+  href: string
+  icon: typeof LayoutDashboard
+  label: string
 }
 
-export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
+// ── Constants ─────────────────────────────────────────────────────────────
+
+const NAV_ITEMS: NavItem[] = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/planner', icon: Calendar, label: 'Planner' },
+  { href: '/habits', icon: Target, label: 'Habits' },
+]
+
+// ── Streak colour helper ───────────────────────────────────────────────────
+
+const getStreakTheme = (s: number) =>
+  s === 0 ? { color: '#6b7280', glow: 'rgba(107,114,128,0.20)' } :
+    s <= 2 ? { color: '#f87171', glow: 'rgba(248,113,113,0.25)' } :
+      s <= 6 ? { color: '#fb923c', glow: 'rgba(251,146,60,0.25)' } :
+        s <= 13 ? { color: '#facc15', glow: 'rgba(250,204,21,0.25)' } :
+          s <= 29 ? { color: '#c084fc', glow: 'rgba(192,132,252,0.25)' } :
+            { color: '#22d3ee', glow: 'rgba(34,211,238,0.25)' }
+
+// ── Animation variants ────────────────────────────────────────────────────
+
+const labelVariants = {
+  hidden: { opacity: 0, x: -8, width: 0 },
+  visible: { opacity: 1, x: 0, width: 'auto' },
+}
+
+const sidebarVariants = {
+  expanded: { width: 240 },
+  collapsed: { width: 72 },
+}
+
+// ── NavItemRow ────────────────────────────────────────────────────────────
+
+function NavItemRow({
+  item,
+  isExpanded,
+  isActive,
+}: {
+  item: NavItem
+  isExpanded: boolean
+  isActive: boolean
+}) {
+  const Icon = item.icon
+
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        'group relative flex items-center gap-3 rounded-xl px-3 py-2.5',
+        'transition-colors duration-150 select-none',
+        isActive ? 'text-white'
+          : 'text-text-muted hover:text-text-secondary',
+        !isExpanded && 'justify-center',
+      )}
+    >
+      {/* Active pill background */}
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-active-pill"
+          className="absolute inset-0 rounded-xl bg-accent-purple/15"
+          transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+        />
+      )}
+
+      {/* Hover highlight */}
+      <div className="absolute inset-0 rounded-xl opacity-0 bg-white/[0.04] group-hover:opacity-100 transition-opacity duration-150" />
+
+      {/* Active left accent bar */}
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-accent-bar"
+          className="absolute left-0 inset-y-0 my-auto w-[3px] h-5 rounded-r-full bg-accent-purple"
+          transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+        />
+      )}
+
+      {/* Icon */}
+      <motion.div
+        className="relative z-10 flex-shrink-0"
+        animate={isActive ? { scale: 1.08 } : { scale: 1 }}
+        whileHover={{ scale: 1.14 }}
+        whileTap={{ scale: 0.92 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+      >
+        <Icon
+          className={cn(
+            'h-[18px] w-[18px] transition-all duration-200',
+            isActive
+              ? 'text-accent-purple drop-shadow-[0_0_8px_rgba(124,58,237,0.55)]'
+              : 'text-text-muted group-hover:text-text-secondary',
+          )}
+        />
+      </motion.div>
+
+      {/* Label */}
+      <AnimatePresence mode="wait">
+        {isExpanded && (
+          <motion.span
+            key="label"
+            variants={labelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            className={cn(
+              'relative z-10 text-[13px] font-medium leading-none overflow-hidden whitespace-nowrap',
+              isActive
+                ? 'text-text-primary'
+                : 'text-text-secondary group-hover:text-text-primary transition-colors duration-150',
+            )}
+          >
+            {item.label}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </Link>
+  )
+}
+
+// ── Main Sidebar ───────────────────────────────────────────────────────────
+
+export function Sidebar() {
+  const { isExpanded, toggle } = useSidebar()
   const pathname = usePathname()
   const { data } = useDashboard()
   const { data: session } = useSession()
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [mounted, setMounted] = useState(false)
 
-  const user    = session?.user
-  const streak  = data?.streak?.current ?? 0
-  const loading = !data
+  useEffect(() => { setMounted(true) }, [])
 
-  const streakTheme = useMemo(() => getStreakTheme(streak), [streak])
-  const activeIndex = useMemo(
-    () => navigation.findIndex(item => pathname.startsWith(item.href)),
-    [pathname],
+  const streak = data?.streak?.current ?? 0
+  const streakTheme = useMemo(
+    () => getStreakTheme(mounted ? streak : 0),
+    [streak, mounted],
   )
+  const user = session?.user
 
-  /* ── Profile initials (fallback only) ── */
   const initials = useMemo(() => {
     if (!user?.name) return 'U'
     const parts = user.name.trim().split(/\s+/)
@@ -70,198 +170,195 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   }, [user?.name])
 
   return (
-    <>
-      {/* ── Mobile backdrop ── */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={onClose}
-        />
-      )}
+    <motion.aside
+      variants={sidebarVariants}
+      animate={isExpanded ? 'expanded' : 'collapsed'}
+      transition={{ type: 'spring', stiffness: 340, damping: 34, mass: 0.9 }}
+      className="fixed inset-y-0 left-0 z-40 flex flex-col bg-[#08090e] border-r border-white/[0.05] overflow-hidden"
+      style={{ willChange: 'width' }}
+    >
+      {/* Ambient purple glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-accent-purple/[0.05] to-transparent" />
 
-      {/* ═══════════════════════════════════════
-          SIDEBAR SHELL (72 px)
-      ═══════════════════════════════════════ */}
-      <aside
+      {/* ── Header ── */}
+      <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col',
-          'w-[72px] bg-[#0a0c10]/95 backdrop-blur-xl',
-          'border-r border-white/[0.06]',
-          'transition-transform duration-300 ease-material',
-          'will-change-transform',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+          'relative flex items-center h-[60px] border-b border-white/[0.05] flex-shrink-0 px-3',
+          isExpanded ? 'justify-between' : 'justify-center',
         )}
       >
-        {/* Gradient accent line */}
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-violet-500 via-cyan-400 to-violet-500 opacity-60" />
+        <AnimatePresence mode="wait">
+          {isExpanded && (
+            <motion.div
+              key="logo"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 }}
+              transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+              className="flex items-center gap-2.5 overflow-hidden"
+            >
+              <Image
+                src="/TrackZen_sign.png"
+                alt="TrackZen Logo"
+                width={32}
+                height={32}
+                className="flex-shrink-0 object-contain"
+                priority
+              />
+              <span className="text-[15px] font-semibold tracking-tight text-text-primary whitespace-nowrap">
+                TrackZen
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* ── LOGO ── */}
-        <div className="flex h-16 shrink-0 items-center justify-center">
-          <div className="sidebar-logo relative h-9 w-9 flex items-center justify-center rounded-xl overflow-hidden">
-            <Image
-              src="/TrackZen_sign.png"
-              alt="TrackZen"
-              width={36}
-              height={36}
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
-
-        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-
-        {/* ── PROFILE AVATAR ── */}
-        <div className="flex items-center justify-center pt-5 pb-2 group/user">
-          <div className="relative">
-            {/* animated gradient ring */}
-            <div className="sidebar-avatar-ring absolute -inset-[3px] rounded-full bg-gradient-to-tr from-violet-500 via-cyan-400 to-violet-500 opacity-0 group-hover/user:opacity-100 transition-opacity duration-300" />
-            <div className="relative h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/10 group-hover/user:ring-transparent transition-all duration-300 cursor-pointer bg-[#14161d]">
-              {user?.image ? (
-                <Image
-                  src={user.image}
-                  alt={user.name || 'Profile'}
-                  width={40}
-                  height={40}
-                  className="h-full w-full object-cover"
-                  referrerPolicy="no-referrer"
-                  unoptimized
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-violet-600 to-cyan-500 text-[13px] font-bold text-white select-none">
-                  {initials}
-                </div>
-              )}
-            </div>
-            {/* online dot */}
-            <span className="absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full bg-emerald-400 ring-2 ring-[#0a0c10]" />
-          </div>
-
-          {/* tooltip */}
-          <div className="sidebar-tooltip absolute left-full ml-5 px-4 py-2.5 bg-[#12141b] border border-white/[0.08] rounded-2xl opacity-0 invisible group-hover/user:opacity-100 group-hover/user:visible transition-all duration-200 whitespace-nowrap shadow-2xl shadow-black/40 z-[60]">
-            <p className="text-[13px] font-semibold text-white leading-tight">
-              {user?.name || 'User'}
-            </p>
-            <p className="text-[11px] text-white/40 mt-0.5 leading-tight">
-              {user?.email || ''}
-            </p>
-          </div>
-        </div>
-
-        {/* ── STREAK PILL ── */}
-        <div className="flex items-center justify-center py-2 group/streak">
-          <div
-            className="sidebar-icon-btn flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.05] cursor-pointer transition-all duration-300 hover:scale-105"
-            style={{ background: `${streakTheme.glow}` }}
+        {/* Toggle button */}
+        <motion.button
+          onClick={toggle}
+          whileHover={{ scale: 1.08, backgroundColor: 'rgba(255,255,255,0.08)' }}
+          whileTap={{ scale: 0.90 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+          className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/[0.07] text-text-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-purple/50"
+          aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+          <motion.span
+            animate={{ rotate: isExpanded ? 0 : 180 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            className="flex items-center justify-center"
           >
-            <Flame
-              size={19}
-              className="sidebar-flame transition-transform duration-300 group-hover/streak:scale-110"
-              style={{ color: streakTheme.color }}
-            />
-          </div>
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </motion.span>
+        </motion.button>
+      </div>
 
-          {/* tooltip */}
-          <div className="sidebar-tooltip absolute left-full ml-5 px-4 py-2.5 bg-[#12141b] border border-white/[0.08] rounded-2xl opacity-0 invisible group-hover/streak:opacity-100 group-hover/streak:visible transition-all duration-200 whitespace-nowrap shadow-2xl shadow-black/40 z-[60]">
-            <p className="text-[10px] font-semibold text-white/50 uppercase tracking-widest leading-none mb-1">
-              Streak
-            </p>
-            <p className="text-base font-black leading-none" style={{ color: streakTheme.color }} suppressHydrationWarning>
-              {loading ? '–' : `${streak} day${streak !== 1 ? 's' : ''}`}
-            </p>
-          </div>
-        </div>
+      {/* ── Navigation ── */}
+      <nav className="relative flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden scrollbar-hide p-2 pt-3">
+        <AnimatePresence mode="wait">
+          {isExpanded && (
+            <motion.p
+              key="menu-label"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-text-muted/50"
+            >
+              Menu
+            </motion.p>
+          )}
+        </AnimatePresence>
 
-        <div className="mx-4 mt-1 mb-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-
-        {/* ── NAVIGATION ── */}
-        <nav className="relative mt-3 flex flex-col gap-2 px-3 flex-1">
-          {/* Animated pill indicator */}
-          <div
-            className="absolute left-3 right-3 h-[48px] rounded-2xl transition-all duration-350 ease-material will-change-[transform,opacity]"
-            style={{
-              top: `${INDICATOR_TOP(hoveredIndex ?? activeIndex)}px`,
-              opacity: activeIndex >= 0 || hoveredIndex !== null ? 1 : 0,
-              transform: hoveredIndex !== null ? 'scale(1.04)' : 'scale(1)',
-              background: 'linear-gradient(135deg, rgba(124,58,237,0.85), rgba(6,182,212,0.75))',
-              boxShadow: hoveredIndex !== null
-                ? '0 4px 24px rgba(124,58,237,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset'
-                : '0 2px 16px rgba(124,58,237,0.25), 0 0 0 1px rgba(255,255,255,0.04) inset',
-            }}
+        {NAV_ITEMS.map((item) => (
+          <NavItemRow
+            key={item.href}
+            item={item}
+            isExpanded={isExpanded}
+            isActive={pathname.startsWith(item.href)}
           />
+        ))}
+      </nav>
 
-          {navigation.map((item, index) => {
-            const isActive  = pathname.startsWith(item.href)
-            const Icon      = item.icon
-            const isHovered = hoveredIndex === index
-            const isLit     = isActive || isHovered
+      {/* ── Footer ── */}
+      <div className="flex flex-col gap-1 border-t border-white/[0.05] p-2 flex-shrink-0">
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onMouseEnter={() => {
-                  setHoveredIndex(index)
-                }}
-                onMouseLeave={() => setHoveredIndex(null)}
-                className={cn(
-                  'sidebar-nav-item relative flex items-center justify-center',
-                  'h-[48px] rounded-2xl z-10',
-                  'transition-all duration-200 group/link',
-                )}
-              >
-                <Icon
-                  size={20}
-                  strokeWidth={isLit ? 2.2 : 1.8}
-                  className={cn(
-                    'sidebar-nav-icon transition-all duration-300',
-                    isLit
-                      ? 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.25)]'
-                      : 'text-white/35 group-hover/link:text-white/60',
-                  )}
-                />
-
-                {/* tooltip */}
-                <span className={cn(
-                  'sidebar-tooltip absolute left-full ml-5',
-                  'px-3.5 py-2 bg-[#12141b] border border-white/[0.08] rounded-2xl',
-                  'text-[13px] font-medium text-white whitespace-nowrap',
-                  'opacity-0 invisible group-hover/link:opacity-100 group-hover/link:visible',
-                  'transition-all duration-200 shadow-2xl shadow-black/40 z-[60]',
-                  'pointer-events-none',
-                )}>
-                  {item.name}
-                </span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* ── SIGN OUT ── */}
-        <div className="px-3 pb-5 mt-auto">
-          <div className="mx-1 mb-3 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-          <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className={cn(
-              'sidebar-nav-item relative flex items-center justify-center',
-              'h-[48px] w-full rounded-2xl',
-              'text-white/35 transition-all duration-300 group/logout',
-              'hover:bg-red-500/[0.08] hover:text-red-400',
-            )}
+        {/* Streak */}
+        <div
+          className={cn(
+            'flex items-center gap-3 rounded-xl px-3 py-2',
+            !isExpanded && 'justify-center',
+          )}
+        >
+          <motion.div
+            whileHover={{ scale: 1.12 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            className="relative flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+            style={{ background: streakTheme.glow }}
           >
-            <LogOut
-              size={19}
-              strokeWidth={1.8}
-              className="sidebar-nav-icon transition-all duration-300 group-hover/logout:text-red-400 group-hover/logout:-translate-x-0.5"
-            />
+            <Flame className="h-4 w-4" style={{ color: streakTheme.color }} />
+          </motion.div>
 
-            {/* tooltip */}
-            <span className="sidebar-tooltip absolute left-full ml-5 px-3.5 py-2 bg-[#12141b] border border-white/[0.08] rounded-2xl text-[13px] font-medium text-white whitespace-nowrap opacity-0 invisible group-hover/logout:opacity-100 group-hover/logout:visible transition-all duration-200 shadow-2xl shadow-black/40 z-[60] pointer-events-none">
-              Sign Out
-            </span>
-          </button>
+          <AnimatePresence mode="wait">
+            {isExpanded && (
+              <motion.div
+                key="streak-info"
+                variants={labelVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                className="overflow-hidden"
+              >
+                <p className="text-[11px] font-medium text-text-muted whitespace-nowrap leading-none">
+                  Daily Streak
+                </p>
+                <p
+                  className="mt-0.5 text-[14px] font-bold whitespace-nowrap leading-none"
+                  style={{ color: streakTheme.color }}
+                  suppressHydrationWarning
+                >
+                  {streak} {streak === 1 ? 'day' : 'days'}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </aside>
-    </>
+
+        {/* User profile */}
+        <Link
+          href="/dashboard"
+          className={cn(
+            'group relative flex items-center gap-3 rounded-xl px-3 py-2',
+            'hover:bg-white/[0.04] transition-colors duration-150',
+            !isExpanded && 'justify-center',
+          )}
+        >
+          <motion.div
+            whileHover={{ scale: 1.07 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            className="relative flex-shrink-0 h-7 w-7 rounded-full overflow-hidden ring-1 ring-white/10"
+          >
+            {user?.image ? (
+              <Image
+                src={user.image}
+                alt={user.name ?? 'Profile'}
+                width={28}
+                height={28}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-accent-purple/20 text-[10px] font-bold text-accent-purple">
+                {initials}
+              </div>
+            )}
+            {/* Online dot */}
+            <span className="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-[#08090e] bg-accent-green" />
+          </motion.div>
+
+          <AnimatePresence mode="wait">
+            {isExpanded && (
+              <motion.div
+                key="user-info"
+                variants={labelVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                className="min-w-0 overflow-hidden"
+              >
+                <p className="truncate text-[12px] font-medium text-text-primary leading-none whitespace-nowrap">
+                  {user?.name ?? 'User'}
+                </p>
+                <p className="mt-0.5 truncate text-[10px] text-text-muted leading-none whitespace-nowrap">
+                  {user?.email ?? ''}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Link>
+      </div>
+    </motion.aside>
   )
 }

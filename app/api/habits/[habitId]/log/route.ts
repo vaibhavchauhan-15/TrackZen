@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/api/auth-guard'
+import { ok, err, notFound } from '@/lib/api/response'
 import { db } from '@/lib/db'
 import { habits, habitLogs, streaks } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -15,6 +15,11 @@ import { eq, and } from 'drizzle-orm'
  *   no log        → create with status 'done'
  *   status 'done' → delete log (un-mark)
  *   other status  → update to 'done'
+ *
+ * Professional patterns:
+ * - Single JOIN query to verify ownership + check existing log
+ * - Streak update uses cached date strings (avoid repeated toISOString)
+ * - Minimal branching with early returns
  */
 
 export const dynamic = 'force-dynamic'
@@ -25,20 +30,16 @@ interface Params {
 
 export async function POST(request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { habitId } = await params
-    const userId = session.user.id
 
     // Parse date from body, default to today
     const body = await request.json().catch(() => ({}))
     const date: string = body.date ?? new Date().toISOString().split('T')[0]
 
-    // Single query: verify ownership AND check for existing log via LEFT JOIN.
-    // Reduces 2 serial round-trips to 1.
+    // Single JOIN: ownership check + existing log lookup in 1 round-trip
     const [row] = await db
       .select({
         habitExists: habits.id,
@@ -57,31 +58,21 @@ export async function POST(request: Request, { params }: Params) {
       .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
       .limit(1)
 
-    if (!row) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-    }
+    if (!row) return notFound('Habit not found')
 
     const existing = row.logId ? { id: row.logId, status: row.logStatus } : null
-
     let newStatus: 'done' | null = null
 
     if (!existing) {
-      // No log — mark as done
-      await db.insert(habitLogs).values({
-        habitId,
-        userId,
-        date,
-        status: 'done',
-      })
+      // No log → mark as done
+      await db.insert(habitLogs).values({ habitId, userId, date, status: 'done' })
       newStatus = 'done'
     } else if (existing.status === 'done') {
-      // Already done — un-mark (delete log)
-      await db
-        .delete(habitLogs)
-        .where(eq(habitLogs.id, existing.id))
+      // Already done → un-mark
+      await db.delete(habitLogs).where(eq(habitLogs.id, existing.id))
       newStatus = null
     } else {
-      // Other status (missed/skipped) — update to done
+      // Other status → update to done
       await db
         .update(habitLogs)
         .set({ status: 'done' })
@@ -89,7 +80,7 @@ export async function POST(request: Request, { params }: Params) {
       newStatus = 'done'
     }
 
-    // Update habit streak
+    // ── Update streak (only when toggling today's date) ──────────
     const today = new Date().toISOString().split('T')[0]
     let returnedStreak: { currentStreak: number; longestStreak: number } | null = null
 
@@ -107,19 +98,15 @@ export async function POST(request: Request, { params }: Params) {
         .limit(1)
 
       if (newStatus === 'done') {
+        // Marking done — increment or create streak
         if (streak) {
-          const lastActive = streak.lastActiveDate
-          const yesterday = new Date()
-          yesterday.setDate(yesterday.getDate() - 1)
-          const yesterdayStr = yesterday.toISOString().split('T')[0]
-
+          const yesterdayStr = getYesterdayStr()
           const newCurrent =
-            lastActive === today
+            streak.lastActiveDate === today
               ? streak.currentStreak
-              : lastActive === yesterdayStr
+              : streak.lastActiveDate === yesterdayStr
                 ? streak.currentStreak + 1
                 : 1
-
           const newLongest = Math.max(streak.longestStreak, newCurrent)
 
           await db
@@ -140,20 +127,14 @@ export async function POST(request: Request, { params }: Params) {
           returnedStreak = { currentStreak: 1, longestStreak: 1 }
         }
       } else {
-        // Un-marked → decrement streak (treat lastActiveDate as yesterday or reset)
+        // Un-marking → decrement
         if (streak) {
           const newCurrent = Math.max(0, streak.currentStreak - 1)
           await db
             .update(streaks)
             .set({
               currentStreak: newCurrent,
-              lastActiveDate: newCurrent > 0
-                ? (() => {
-                  const d = new Date()
-                  d.setDate(d.getDate() - 1)
-                  return d.toISOString().split('T')[0]
-                })()
-                : null,
+              lastActiveDate: newCurrent > 0 ? getYesterdayStr() : null,
             })
             .where(eq(streaks.id, streak.id))
           returnedStreak = { currentStreak: newCurrent, longestStreak: streak.longestStreak }
@@ -163,9 +144,16 @@ export async function POST(request: Request, { params }: Params) {
       }
     }
 
-    return NextResponse.json({ status: newStatus, streak: returnedStreak })
+    return ok({ status: newStatus, streak: returnedStreak }, { noCache: true })
   } catch (error) {
     console.error('Habit log POST error:', error)
-    return NextResponse.json({ error: 'Failed to toggle habit log' }, { status: 500 })
+    return err('Failed to toggle habit log')
   }
+}
+
+/** Cache-friendly yesterday string — avoids inline IIFE. */
+function getYesterdayStr(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
 }

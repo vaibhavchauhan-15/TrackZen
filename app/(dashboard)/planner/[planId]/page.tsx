@@ -63,6 +63,7 @@ export default function PlanDetailPage() {
   const router = useRouter()
   const planId = params.planId as string
 
+  const [mounted, setMounted] = useState(false)
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
   const [toasts, setToasts] = useState<ToastType[]>([])
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null)
@@ -128,6 +129,10 @@ export default function PlanDetailPage() {
       }
     }
   }, [plan, selectedTopicId])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Handle errors
   if (pageError?.message === 'Failed to fetch' || pageData?.error === 'Plan not found') {
@@ -259,7 +264,7 @@ export default function PlanDetailPage() {
     }
   }
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-24 rounded-lg bg-bg-surface" />
@@ -811,7 +816,7 @@ export default function PlanDetailPage() {
                             </div>
 
                             {/* Inline Subtopics Expansion - Mobile */}
-                            <AnimatePresence>
+                            <AnimatePresence initial={false}>
                               {isExpanded && hasSubtopics && (
                                 <motion.div
                                   initial={{ height: 0, opacity: 0 }}
@@ -961,7 +966,7 @@ export default function PlanDetailPage() {
 
                   {/* Right Column - Subtopics */}
                   <Card className="lg:col-span-3 overflow-hidden flex flex-col min-h-[300px] lg:min-h-0">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="wait" initial={false}>
                       {selectedTopicId ? (() => {
                         const selectedTopic = plan.topics.find((t: any) => t.id === selectedTopicId)
 

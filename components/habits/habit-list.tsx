@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { MoreHorizontal, Target, Clock, Flag, Pencil, Trash2, AlertTriangle } from 'lucide-react'
-import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
+import { useMemo, useState, useCallback, useEffect, useRef, forwardRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AnimatedCheckbox } from '@/components/ui/animated-checkbox'
@@ -36,7 +36,7 @@ interface HabitCardProps {
   onDelete: (habitId: string) => Promise<void>
 }
 
-function HabitCard({ habit, todayLogs, weeklyLogs, onToggle, onEdit, onDelete }: HabitCardProps) {
+const HabitCard = forwardRef<HTMLDivElement, HabitCardProps>(function HabitCard({ habit, todayLogs, weeklyLogs, onToggle, onEdit, onDelete }, ref) {
   const today = new Date().toISOString().split('T')[0]
   // Local optimistic state — flips instantly on click, independent of SWR propagation
   const [optimisticChecked, setOptimisticChecked] = useState<boolean | null>(null)
@@ -98,6 +98,7 @@ function HabitCard({ habit, todayLogs, weeklyLogs, onToggle, onEdit, onDelete }:
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{
@@ -263,7 +264,7 @@ function HabitCard({ habit, todayLogs, weeklyLogs, onToggle, onEdit, onDelete }:
       </Card>
     </motion.div>
   )
-}
+})
 
 interface HabitListProps {
   habits: Habit[]

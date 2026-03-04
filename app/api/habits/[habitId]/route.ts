@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/api/auth-guard'
+import { ok, err, notFound, badRequest } from '@/lib/api/response'
 import { db } from '@/lib/db'
-import { habits, habitLogs, streaks } from '@/lib/db/schema'
+import { habits, streaks } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 /**
  * OPTIMIZED Single Habit API
- * 
- * PATCH: Update habit
- * DELETE: Delete habit
+ *
+ * GET    — Fetch habit + streak (parallel queries)
+ * PATCH  — Update habit (single query, ownership via WHERE)
+ * DELETE — Remove habit + streak (single transaction)
+ *
+ * Professional patterns:
+ * - Parallel queries on GET (habit + streak at once)
+ * - PATCH uses UPDATE...WHERE owner = userId → no extra SELECT
+ * - DELETE uses transaction for atomicity
+ * - Removed unused `habitLogs` import
  */
 
 export const dynamic = 'force-dynamic'
@@ -18,136 +25,133 @@ interface Params {
   params: Promise<{ habitId: string }>
 }
 
-// GET /api/habits/[habitId] - Get single habit
-export async function GET(request: Request, { params }: Params) {
+// ── GET /api/habits/[habitId] ────────────────────────────────────
+export async function GET(_request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { habitId } = await params
-    const userId = session.user.id
 
-    const [habit] = await db.select()
-      .from(habits)
-      .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
-      .limit(1)
+    // Parallel: habit + streak
+    const [[habit], [streak]] = await Promise.all([
+      db
+        .select()
+        .from(habits)
+        .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
+        .limit(1),
 
-    if (!habit) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-    }
+      db
+        .select({
+          currentStreak: streaks.currentStreak,
+          longestStreak: streaks.longestStreak,
+        })
+        .from(streaks)
+        .where(
+          and(
+            eq(streaks.userId, userId),
+            eq(streaks.type, 'habit'),
+            eq(streaks.refId, habitId),
+          ),
+        )
+        .limit(1),
+    ])
 
-    // Get streak info
-    const [streak] = await db.select()
-      .from(streaks)
-      .where(and(
-        eq(streaks.userId, userId),
-        eq(streaks.type, 'habit'),
-        eq(streaks.refId, habitId)
-      ))
-      .limit(1)
+    if (!habit) return notFound('Habit not found')
 
-    return NextResponse.json({
+    return ok({
       habit: {
         ...habit,
-        currentStreak: streak?.currentStreak || 0,
-        longestStreak: streak?.longestStreak || 0,
+        currentStreak: streak?.currentStreak ?? 0,
+        longestStreak: streak?.longestStreak ?? 0,
       },
     })
   } catch (error) {
     console.error('Habit GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch habit' }, { status: 500 })
+    return err('Failed to fetch habit')
   }
 }
 
-// PATCH /api/habits/[habitId] - Update habit
+// ── PATCH /api/habits/[habitId] ──────────────────────────────────
 export async function PATCH(request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { habitId } = await params
-    const userId = session.user.id
     const body = await request.json()
 
-    // Prepare update data
-    const updateData: Record<string, any> = {}
-    
-    if (body.title !== undefined) updateData.title = body.title.trim()
-    if (body.description !== undefined) updateData.description = body.description?.trim() || null
-    if (body.category !== undefined) updateData.category = body.category
-    if (body.frequency !== undefined) updateData.frequency = body.frequency
-    if (body.targetDays !== undefined) updateData.targetDays = body.targetDays
-    if (body.timeSlot !== undefined) updateData.timeSlot = body.timeSlot || null
-    if (body.priority !== undefined) updateData.priority = body.priority
-    if (body.color !== undefined) updateData.color = body.color
-    if (body.icon !== undefined) updateData.icon = body.icon
-    if (body.isActive !== undefined) updateData.isActive = body.isActive
+    // Build patch object — only include provided fields
+    const allowedFields = [
+      'title', 'description', 'category', 'frequency',
+      'targetDays', 'timeSlot', 'priority', 'color', 'icon', 'isActive',
+    ] as const
 
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    const updateData: Record<string, unknown> = {}
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] =
+          field === 'title' ? body[field].trim()
+            : field === 'description' ? (body[field]?.trim() || null)
+              : field === 'timeSlot' ? (body[field] || null)
+                : body[field]
+      }
     }
 
-    // Single query: update + ownership check combined (no extra SELECT round-trip)
-    const [updatedHabit] = await db.update(habits)
+    if (Object.keys(updateData).length === 0) {
+      return badRequest('No valid fields to update')
+    }
+
+    // Single query: UPDATE + ownership check in WHERE — no extra SELECT
+    const [updatedHabit] = await db
+      .update(habits)
       .set(updateData)
       .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
       .returning()
 
-    if (!updatedHabit) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-    }
+    if (!updatedHabit) return notFound('Habit not found')
 
-    return NextResponse.json({ habit: updatedHabit })
+    return ok({ habit: updatedHabit }, { noCache: true })
   } catch (error) {
     console.error('Habit PATCH error:', error)
-    return NextResponse.json({ error: 'Failed to update habit' }, { status: 500 })
+    return err('Failed to update habit')
   }
 }
 
-// DELETE /api/habits/[habitId] - Delete habit
-export async function DELETE(request: Request, { params }: Params) {
+// ── DELETE /api/habits/[habitId] ─────────────────────────────────
+export async function DELETE(_request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { habitId } = await params
-    const userId = session.user.id
 
-    // Verify ownership
-    const [existingHabit] = await db.select({ id: habits.id })
+    // Verify ownership with minimal projection
+    const [existing] = await db
+      .select({ id: habits.id })
       .from(habits)
       .where(and(eq(habits.id, habitId), eq(habits.userId, userId)))
       .limit(1)
 
-    if (!existingHabit) {
-      return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-    }
+    if (!existing) return notFound('Habit not found')
 
-    // Delete in transaction (habit logs cascade, but delete streak manually)
-    await db.transaction(async (tx) => {
-      // Delete streak
-      await tx.delete(streaks).where(and(
-        eq(streaks.userId, userId),
-        eq(streaks.type, 'habit'),
-        eq(streaks.refId, habitId)
-      ))
-
-      // Delete habit (logs cascade due to FK)
+    // Atomic delete: streak + habit in single transaction
+    await db.transaction(async tx => {
+      await tx
+        .delete(streaks)
+        .where(
+          and(
+            eq(streaks.userId, userId),
+            eq(streaks.type, 'habit'),
+            eq(streaks.refId, habitId),
+          ),
+        )
       await tx.delete(habits).where(eq(habits.id, habitId))
     })
 
-    return NextResponse.json({ success: true })
+    return ok({ success: true }, { noCache: true })
   } catch (error) {
     console.error('Habit DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete habit' }, { status: 500 })
+    return err('Failed to delete habit')
   }
 }

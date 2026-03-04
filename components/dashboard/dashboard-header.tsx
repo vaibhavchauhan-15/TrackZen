@@ -121,7 +121,7 @@ export function DashboardHeader({ streak }: DashboardHeaderProps) {
       />
 
       {/* ── Top: greeting + gif ────────────────────────────────────────── */}
-      <div className="relative z-10 flex items-center justify-between gap-4 px-5 py-5 sm:px-7 sm:py-6">
+      <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4 px-4 py-4 sm:px-7 sm:py-6">
         {/* Left: greeting */}
         <div className="space-y-1 min-w-0">
           <motion.p
@@ -137,7 +137,7 @@ export function DashboardHeader({ streak }: DashboardHeaderProps) {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.35, delay: 0.13, ease: [0.4, 0, 0.2, 1] }}
-            className="text-xl sm:text-3xl font-bold text-text-primary truncate"
+            className="text-lg sm:text-3xl font-bold text-text-primary truncate"
           >
             {emoji && <>{emoji}&nbsp;</>}{greeting && <>{greeting},</>}{' '}{' '}
             <span className="text-accent-purple">{firstName}</span>
@@ -160,7 +160,7 @@ export function DashboardHeader({ streak }: DashboardHeaderProps) {
           transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           className="flex-shrink-0 rounded-xl overflow-hidden"
           style={{
-            width: 'clamp(120px, 22vw, 220px)',
+            width: 'clamp(80px, 20vw, 220px)',
             aspectRatio: '16/9',
             transform: 'translateZ(0)',
             willChange: 'transform',
@@ -188,15 +188,12 @@ export function DashboardHeader({ streak }: DashboardHeaderProps) {
         </motion.div>
       </div>
 
-      {/* ── Divider ───────────────────────────────────────────────────── */}
-      <div className="relative z-10 mx-5 sm:mx-7 border-t border-border/60" />
-
       {/* ── Bottom: streak info ───────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
-        className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4 sm:px-7 sm:py-5"
+        className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3 sm:px-7 sm:py-5"
       >
         {/* Flame + count */}
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -209,8 +206,8 @@ export function DashboardHeader({ streak }: DashboardHeaderProps) {
             </motion.div>
           </div>
           <div className="leading-none">
-            <p className="text-2xl sm:text-3xl font-bold text-text-primary">{streakDays}</p>
-            <p className="text-xs text-text-muted mt-0.5">day streak</p>
+            <p className="text-xl sm:text-3xl font-bold text-text-primary">{streakDays}</p>
+            <p className="text-[11px] sm:text-xs text-text-muted mt-0.5">day streak</p>
           </div>
         </div>
 

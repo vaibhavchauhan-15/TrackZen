@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/api/auth-guard'
+import { ok, err, notFound, badRequest } from '@/lib/api/response'
 import { db } from '@/lib/db'
 import { plans, topics } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 /**
- * Single Plan API
+ * OPTIMIZED Single Plan API
  *
- * GET: Get plan with full topics tree
- * PATCH: Update plan status/details
- * DELETE: Delete plan (cascades to topics)
+ * GET    — Plan with full topic tree (parallel: plan + topics)
+ * PATCH  — Update plan fields (ownership via UPDATE WHERE)
+ * DELETE — Delete plan (cascade handles topics)
+ *
+ * Professional patterns:
+ * - Parallel queries on GET
+ * - PATCH: single UPDATE with ownership in WHERE — no extra SELECT
+ * - Single-pass tree builder with pre-allocated Map
  */
 
 export const dynamic = 'force-dynamic'
@@ -19,69 +24,69 @@ interface Params {
   params: Promise<{ planId: string }>
 }
 
-// GET /api/plans/[planId] - Get plan with topics
-export async function GET(request: Request, { params }: Params) {
+// ── GET /api/plans/[planId] ──────────────────────────────────────
+export async function GET(_request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { planId } = await params
-    const userId = session.user.id
 
-    // Verify plan ownership and get plan data
-    const [planData] = await db.select()
-      .from(plans)
-      .where(and(
-        eq(plans.id, planId),
-        eq(plans.userId, userId)
-      ))
-      .limit(1)
+    // Parallel: plan + all topics in 2 queries
+    const [[planData], allTopics] = await Promise.all([
+      db
+        .select()
+        .from(plans)
+        .where(and(eq(plans.id, planId), eq(plans.userId, userId)))
+        .limit(1),
 
-    if (!planData) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+      db
+        .select({
+          id: topics.id,
+          parentId: topics.parentId,
+          title: topics.title,
+          estimatedHours: topics.estimatedHours,
+          status: topics.status,
+          priority: topics.priority,
+          scheduledDate: topics.scheduledDate,
+          orderIndex: topics.orderIndex,
+          notes: topics.notes,
+          isWeakArea: topics.isWeakArea,
+        })
+        .from(topics)
+        .where(eq(topics.planId, planId))
+        .orderBy(topics.orderIndex),
+    ])
+
+    if (!planData) return notFound('Plan not found')
+
+    // Single-pass tree builder
+    const parents: (typeof allTopics[0] & { subtopics: typeof allTopics })[] = []
+    const childMap = new Map<string, typeof allTopics>()
+
+    let totalSub = 0
+    let completedSub = 0
+    let inProgressSub = 0
+
+    for (const t of allTopics) {
+      if (t.parentId === null) {
+        parents.push({ ...t, subtopics: [] })
+      } else {
+        const list = childMap.get(t.parentId) ?? []
+        list.push(t)
+        childMap.set(t.parentId, list)
+        totalSub++
+        if (t.status === 'completed') completedSub++
+        else if (t.status === 'in_progress') inProgressSub++
+      }
     }
 
-    // Get all topics for this plan
-    const allTopics = await db.select({
-      id: topics.id,
-      parentId: topics.parentId,
-      title: topics.title,
-      estimatedHours: topics.estimatedHours,
-      status: topics.status,
-      priority: topics.priority,
-      scheduledDate: topics.scheduledDate,
-      orderIndex: topics.orderIndex,
-      notes: topics.notes,
-      isWeakArea: topics.isWeakArea,
-    })
-      .from(topics)
-      .where(eq(topics.planId, planId))
-      .orderBy(topics.orderIndex)
+    // Attach children (already sorted by orderIndex from DB)
+    for (const parent of parents) {
+      parent.subtopics = childMap.get(parent.id) ?? []
+    }
 
-    // Build topic tree (parent topics with subtopics)
-    const parentTopics = allTopics.filter(t => t.parentId === null)
-    const subtopicsMap = new Map<string, typeof allTopics>()
-
-    allTopics.filter(t => t.parentId !== null).forEach(topic => {
-      const parentSubtopics = subtopicsMap.get(topic.parentId!) || []
-      parentSubtopics.push(topic)
-      subtopicsMap.set(topic.parentId!, parentSubtopics)
-    })
-
-    const topicsTree = parentTopics.map(parent => ({
-      ...parent,
-      subtopics: (subtopicsMap.get(parent.id) || []).sort((a, b) => a.orderIndex - b.orderIndex),
-    }))
-
-    // Calculate topic statistics
-    const subtopics = allTopics.filter(t => t.parentId !== null)
-    const completedSubtopics = subtopics.filter(t => t.status === 'completed')
-    const inProgressSubtopics = subtopics.filter(t => t.status === 'in_progress')
-
-    const response = {
+    return ok({
       plan: {
         id: planData.id,
         title: planData.title,
@@ -92,45 +97,29 @@ export async function GET(request: Request, { params }: Params) {
         dailyHours: planData.dailyHours,
         totalEstimatedHours: planData.totalEstimatedHours,
         color: planData.color,
-        topics: topicsTree,
-        totalTopics: subtopics.length,
-        completedTopics: completedSubtopics.length,
-        inProgressTopics: inProgressSubtopics.length,
+        topics: parents,
+        totalTopics: totalSub,
+        completedTopics: completedSub,
+        inProgressTopics: inProgressSub,
       },
-    }
-
-    return NextResponse.json(response)
+    })
   } catch (error) {
     console.error('Plan GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch plan' }, { status: 500 })
+    return err('Failed to fetch plan')
   }
 }
 
-// PATCH /api/plans/[planId] - Update plan
+// ── PATCH /api/plans/[planId] ────────────────────────────────────
 export async function PATCH(request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { planId } = await params
-    const userId = session.user.id
     const body = await request.json()
 
-    // Verify ownership
-    const [existingPlan] = await db.select({ id: plans.id })
-      .from(plans)
-      .where(and(eq(plans.id, planId), eq(plans.userId, userId)))
-      .limit(1)
-
-    if (!existingPlan) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
-    }
-
-    // Prepare update data
-    const updateData: Record<string, any> = {}
+    // Build patch — only include provided fields
+    const updateData: Record<string, unknown> = {}
 
     if (body.title !== undefined) updateData.title = body.title.trim()
     if (body.type !== undefined) updateData.type = body.type
@@ -140,51 +129,47 @@ export async function PATCH(request: Request, { params }: Params) {
     if (body.dailyHours !== undefined) updateData.dailyHours = body.dailyHours ? parseFloat(body.dailyHours) : null
     if (body.color !== undefined) updateData.color = body.color
 
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
-    }
+    if (Object.keys(updateData).length === 0) return badRequest('No valid fields to update')
 
-    // Update plan
-    const [updatedPlan] = await db.update(plans)
+    // Single UPDATE with ownership in WHERE — no extra SELECT round-trip
+    const [updatedPlan] = await db
+      .update(plans)
       .set(updateData)
-      .where(eq(plans.id, planId))
+      .where(and(eq(plans.id, planId), eq(plans.userId, userId)))
       .returning()
 
-    return NextResponse.json({ plan: updatedPlan })
+    if (!updatedPlan) return notFound('Plan not found')
+
+    return ok({ plan: updatedPlan }, { noCache: true })
   } catch (error) {
     console.error('Plan PATCH error:', error)
-    return NextResponse.json({ error: 'Failed to update plan' }, { status: 500 })
+    return err('Failed to update plan')
   }
 }
 
-// DELETE /api/plans/[planId] - Delete plan
-export async function DELETE(request: Request, { params }: Params) {
+// ── DELETE /api/plans/[planId] ───────────────────────────────────
+export async function DELETE(_request: Request, { params }: Params) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
     const { planId } = await params
-    const userId = session.user.id
 
-    // Verify ownership
-    const [existingPlan] = await db.select({ id: plans.id })
+    // Verify ownership with minimal column
+    const [existing] = await db
+      .select({ id: plans.id })
       .from(plans)
       .where(and(eq(plans.id, planId), eq(plans.userId, userId)))
       .limit(1)
 
-    if (!existingPlan) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
-    }
+    if (!existing) return notFound('Plan not found')
 
-    // Delete plan (topics cascade automatically due to ON DELETE CASCADE)
+    // Single delete — topics cascade via FK ON DELETE CASCADE
     await db.delete(plans).where(eq(plans.id, planId))
 
-    return NextResponse.json({ success: true, message: 'Plan deleted successfully' })
+    return ok({ success: true, message: 'Plan deleted successfully' }, { noCache: true })
   } catch (error) {
     console.error('Plan DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete plan' }, { status: 500 })
+    return err('Failed to delete plan')
   }
 }

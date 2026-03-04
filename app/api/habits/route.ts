@@ -1,172 +1,150 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/api/auth-guard'
+import { ok, err, badRequest } from '@/lib/api/response'
 import { db } from '@/lib/db'
 import { habits, habitLogs, streaks } from '@/lib/db/schema'
 import { eq, and, desc, gte, lte } from 'drizzle-orm'
 
 /**
  * OPTIMIZED Habits API
- * 
- * GET: List all habits with streaks and recent logs
- * POST: Create new habit with initial streak
- * 
- * Performance optimizations:
- * 1. Parallel queries for habits and streaks
- * 2. Batch operations
- * 3. Efficient streak lookup
+ *
+ * GET  — List all habits with streaks and 7-day logs
+ * POST — Create new habit with initial streak record
+ *
+ * Professional patterns:
+ * - Shared auth guard
+ * - 3 parallel queries (habits + streaks + 7-day logs)
+ * - Today's logs derived from weekly result (no extra query)
+ * - Map-based O(1) lookups for streak & log merging
+ * - Transaction for atomic habit + streak creation
  */
 
 export const dynamic = 'force-dynamic'
 
-// Helper: wrap response with no-store cache headers
-const jsonResponse = (data: any, status = 200) =>
-  NextResponse.json(data, {
-    status,
-    headers: { 'Cache-Control': 'no-store, must-revalidate' },
-  })
-
-// GET /api/habits - List all habits with streaks
-export async function GET(request: Request) {
+// ── GET /api/habits ──────────────────────────────────────────────
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
 
-    const userId = session.user.id
-    const today = new Date().toISOString().split('T')[0]
-    
-    // Get last 7 days for weekly overview
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const sevenDaysAgo = new Date(now)
+    sevenDaysAgo.setDate(now.getDate() - 7)
     const weekStart = sevenDaysAgo.toISOString().split('T')[0]
 
-    // Parallel queries — 3 instead of 4 (todayLogs derived from recentLogs)
+    // ── 3 parallel queries ───────────────────────────────────────
     const [userHabits, habitStreaks, recentLogs] = await Promise.all([
-      // 1. Get all habits
-      db.select({
-        id: habits.id,
-        title: habits.title,
-        description: habits.description,
-        category: habits.category,
-        frequency: habits.frequency,
-        targetDays: habits.targetDays,
-        timeSlot: habits.timeSlot,
-        priority: habits.priority,
-        color: habits.color,
-        icon: habits.icon,
-        isActive: habits.isActive,
-        createdAt: habits.createdAt,
-      })
-      .from(habits)
-      .where(eq(habits.userId, userId))
-      .orderBy(desc(habits.createdAt)),
+      db
+        .select({
+          id: habits.id,
+          title: habits.title,
+          description: habits.description,
+          category: habits.category,
+          frequency: habits.frequency,
+          targetDays: habits.targetDays,
+          timeSlot: habits.timeSlot,
+          priority: habits.priority,
+          color: habits.color,
+          icon: habits.icon,
+          isActive: habits.isActive,
+          createdAt: habits.createdAt,
+        })
+        .from(habits)
+        .where(eq(habits.userId, userId))
+        .orderBy(desc(habits.createdAt)),
 
-      // 2. Get all habit streaks
-      db.select({
-        refId: streaks.refId,
-        currentStreak: streaks.currentStreak,
-        longestStreak: streaks.longestStreak,
-        lastActiveDate: streaks.lastActiveDate,
-      })
-      .from(streaks)
-      .where(and(
-        eq(streaks.userId, userId),
-        eq(streaks.type, 'habit')
-      )),
+      db
+        .select({
+          refId: streaks.refId,
+          currentStreak: streaks.currentStreak,
+          longestStreak: streaks.longestStreak,
+          lastActiveDate: streaks.lastActiveDate,
+        })
+        .from(streaks)
+        .where(and(eq(streaks.userId, userId), eq(streaks.type, 'habit'))),
 
-      // 3. Get logs for last 7 days (includes today)
-      db.select({
-        id: habitLogs.id,
-        habitId: habitLogs.habitId,
-        date: habitLogs.date,
-        status: habitLogs.status,
-        note: habitLogs.note,
-      })
-      .from(habitLogs)
-      .where(and(
-        eq(habitLogs.userId, userId),
-        gte(habitLogs.date, weekStart),
-        lte(habitLogs.date, today)
-      ))
-      .orderBy(desc(habitLogs.date)),
+      db
+        .select({
+          id: habitLogs.id,
+          habitId: habitLogs.habitId,
+          date: habitLogs.date,
+          status: habitLogs.status,
+          note: habitLogs.note,
+        })
+        .from(habitLogs)
+        .where(
+          and(
+            eq(habitLogs.userId, userId),
+            gte(habitLogs.date, weekStart),
+            lte(habitLogs.date, today),
+          ),
+        )
+        .orderBy(desc(habitLogs.date)),
     ])
 
-    // Create lookup maps
+    // ── O(1) lookups ─────────────────────────────────────────────
     const streaksMap = new Map(habitStreaks.map(s => [s.refId, s]))
-    // Derive today's logs from the weekly result — no extra DB query needed
-    const todayLogsMap: Record<string, any> = {}
-    recentLogs.forEach(log => {
+
+    const todayLogsMap: Record<string, (typeof recentLogs)[0]> = {}
+    const logsByHabit: Record<string, (typeof recentLogs)> = {}
+
+    for (const log of recentLogs) {
+      // Derive today's logs from weekly result — zero extra queries
       if (log.date === today) todayLogsMap[log.habitId] = log
-    })
+        ; (logsByHabit[log.habitId] ??= []).push(log)
+    }
 
-    // Combine habits with streaks
-    const habitsWithStreaks = userHabits.map(habit => ({
-      ...habit,
-      currentStreak: streaksMap.get(habit.id)?.currentStreak || 0,
-      longestStreak: streaksMap.get(habit.id)?.longestStreak || 0,
-      lastActiveDate: streaksMap.get(habit.id)?.lastActiveDate || null,
-    }))
-
-    // Group logs by habit for weekly overview
-    const logsByHabit: Record<string, any[]> = {}
-    recentLogs.forEach(log => {
-      if (!logsByHabit[log.habitId]) {
-        logsByHabit[log.habitId] = []
+    // ── Merge habits + streaks ───────────────────────────────────
+    const habitsWithStreaks = userHabits.map(h => {
+      const s = streaksMap.get(h.id)
+      return {
+        ...h,
+        currentStreak: s?.currentStreak ?? 0,
+        longestStreak: s?.longestStreak ?? 0,
+        lastActiveDate: s?.lastActiveDate ?? null,
       }
-      logsByHabit[log.habitId].push(log)
     })
 
-    return NextResponse.json({
-      habits: habitsWithStreaks,
-      todayLogs: todayLogsMap,
-      weeklyLogs: logsByHabit,
-    })
+    return ok({ habits: habitsWithStreaks, todayLogs: todayLogsMap, weeklyLogs: logsByHabit })
   } catch (error) {
     console.error('Habits GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch habits' }, { status: 500 })
+    return err('Failed to fetch habits')
   }
 }
 
-// POST /api/habits - Create new habit
+// ── POST /api/habits ─────────────────────────────────────────────
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
 
-    const userId = session.user.id
     const body = await request.json()
-
     const { title, description, category, frequency, targetDays, timeSlot, priority, color, icon } = body
 
-    // Validation
-    if (!title?.trim()) {
-      return NextResponse.json({ error: 'Habit title is required' }, { status: 400 })
-    }
+    if (!title?.trim()) return badRequest('Habit title is required')
 
-    // Create habit and streak in transaction
-    const result = await db.transaction(async (tx) => {
-      // 1. Create habit
-      const [newHabit] = await tx.insert(habits).values({
-        userId,
-        title: title.trim(),
-        description: description?.trim() || null,
-        category: category || 'Custom',
-        frequency: frequency || 'daily',
-        targetDays: targetDays || null,
-        timeSlot: timeSlot || null,
-        priority: priority || 3,
-        color: color || '#7C3AED',
-        icon: icon || '🎯',
-        isActive: true,
-      }).returning()
+    // Atomic: habit + streak in single transaction
+    const result = await db.transaction(async tx => {
+      const [newHabit] = await tx
+        .insert(habits)
+        .values({
+          userId,
+          title: title.trim(),
+          description: description?.trim() || null,
+          category: category || 'Custom',
+          frequency: frequency || 'daily',
+          targetDays: targetDays || null,
+          timeSlot: timeSlot || null,
+          priority: priority || 3,
+          color: color || '#7C3AED',
+          icon: icon || '🎯',
+          isActive: true,
+        })
+        .returning()
 
-      // 2. Create initial streak record
       await tx.insert(streaks).values({
         userId,
         type: 'habit',
@@ -179,15 +157,12 @@ export async function POST(request: Request) {
       return newHabit
     })
 
-    return NextResponse.json({
-      habit: {
-        ...result,
-        currentStreak: 0,
-        longestStreak: 0,
-      },
-    }, { status: 201 })
+    return ok(
+      { habit: { ...result, currentStreak: 0, longestStreak: 0 } },
+      { status: 201, noCache: true },
+    )
   } catch (error) {
     console.error('Habits POST error:', error)
-    return NextResponse.json({ error: 'Failed to create habit' }, { status: 500 })
+    return err('Failed to create habit')
   }
 }

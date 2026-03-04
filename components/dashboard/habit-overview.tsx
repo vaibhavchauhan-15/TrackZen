@@ -35,7 +35,7 @@ export function HabitOverview({ todaysHabits, recentHabits }: HabitOverviewProps
       transition={{ duration: 0.35, delay: 0.16, ease: [0.4, 0, 0.2, 1] }}
     >
       <Card className="h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 px-5 pt-5">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-4 sm:px-5 sm:pt-5">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-accent-cyan" aria-hidden />
             <h2 className="text-sm font-semibold text-text-primary">Habit Overview</h2>
@@ -50,7 +50,7 @@ export function HabitOverview({ todaysHabits, recentHabits }: HabitOverviewProps
           </button>
         </CardHeader>
 
-        <CardContent className="px-5 pb-5 flex-1 space-y-5">
+        <CardContent className="px-4 pb-4 sm:px-5 sm:pb-5 flex-1 space-y-4 sm:space-y-5">
           {/* Today's Habits */}
           <section>
             <div className="flex items-center gap-1.5 mb-3">

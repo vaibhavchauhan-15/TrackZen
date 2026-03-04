@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { CardSkeleton } from '@/components/ui/loading-spinner'
 import { usePlans } from '@/lib/hooks/use-swr-api'
 
@@ -15,6 +15,11 @@ import {
 
 export default function PlannerPage() {
   const { data, isLoading: loading } = usePlans()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Memoize transformed data
   const { plans, stats } = useMemo(() => {
@@ -50,7 +55,7 @@ export default function PlannerPage() {
     return { plans, stats }
   }, [data?.plans])
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="space-y-6">
         <div className="h-28 rounded-xl bg-bg-surface animate-pulse" />

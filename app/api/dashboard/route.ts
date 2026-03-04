@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/api/auth-guard'
 import { db } from '@/lib/db'
 import { plans, topics, habits, habitLogs, streaks, dailyProgress } from '@/lib/db/schema'
 import { eq, and, sql, gte, lte, desc, ne } from 'drizzle-orm'
@@ -8,53 +7,34 @@ import { eq, and, sql, gte, lte, desc, ne } from 'drizzle-orm'
 /**
  * OPTIMIZED Dashboard Summary API — Read-Only Overview
  *
- * Returns minimal summary payload for the read-only dashboard.
- * Uses parallel queries, SQL aggregates, and strict LIMIT on every query.
- *
- * Response shape:
- * {
- *   streak:          { current, longest, lastActiveDate }
- *   analytics:       { weeklyStudyHours, habitsCompletedToday, remainingExamDays }
- *   plannerOverview: { todaysTopics[], recentPlans[] }
- *   habitOverview:   { todaysHabits[], recentHabits[] }
- * }
+ * Professional patterns applied:
+ * - Shared auth guard (DRY)
+ * - All 8 queries fired in parallel via Promise.all
+ * - SQL-level aggregation (COUNT, SUM, CASE) — no JS post-processing
+ * - Strict LIMIT on every query to cap row scans
+ * - Minimal column projection
+ * - Private short-lived cache for dashboard reads
  */
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-// Helper to build response with no-store cache control
-const jsonResponse = (data: any, status = 200) =>
-  NextResponse.json(data, {
-    status,
-    headers: {
-      // Prevent CDN caching; allow browser to revalidate with stale-while-revalidate
-      'Cache-Control': 'no-store, must-revalidate',
-    },
-  })
-
-// Alias for parent topic in self-join
-const parentTopics = topics
-
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const auth = await getAuthUser()
+    if (auth instanceof NextResponse) return auth
+    const { userId } = auth
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const userId = session.user.id
     const now = new Date()
     const today = now.toISOString().split('T')[0]
 
     // Week start (Monday)
-    const dayOfWeek = now.getDay()
+    const dow = now.getDay()
     const monday = new Date(now)
-    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
+    monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1))
     const weekStart = monday.toISOString().split('T')[0]
 
-    // ── All queries in parallel ──────────────────────────────────────────────
+    // ── All queries in parallel ──────────────────────────────────
     const [
       streakRow,
       weeklyHoursRow,
@@ -65,8 +45,7 @@ export async function GET() {
       todaysHabitsRaw,
       recentHabitsRaw,
     ] = await Promise.all([
-
-      // 1. Global streak
+      // 1. Global streak — single row
       db
         .select({
           current: streaks.currentStreak,
@@ -74,10 +53,10 @@ export async function GET() {
           lastActiveDate: streaks.lastActiveDate,
         })
         .from(streaks)
-        .where(and(eq(streaks.userId, userId), sql`${streaks.type} = 'global'`))
+        .where(and(eq(streaks.userId, userId), eq(streaks.type, 'global')))
         .limit(1),
 
-      // 2. Weekly study hours (aggregate only)
+      // 2. Weekly study hours — aggregate only
       db
         .select({
           total: sql<number>`COALESCE(SUM(${dailyProgress.hoursSpent}), 0)`.as('total'),
@@ -91,7 +70,7 @@ export async function GET() {
           ),
         ),
 
-      // 3. Habits completed today (COUNT only)
+      // 3. Habits completed today — COUNT only
       db
         .select({
           count: sql<number>`COUNT(*)`.as('count'),
@@ -101,19 +80,19 @@ export async function GET() {
           and(
             eq(habitLogs.userId, userId),
             eq(habitLogs.date, today),
-            sql`${habitLogs.status} = 'done'`,
+            eq(habitLogs.status, 'done'),
           ),
         ),
 
-      // 4. Nearest active exam plan (for remaining days)
+      // 4. Nearest active exam plan (remaining days)
       db
         .select({ endDate: plans.endDate })
         .from(plans)
         .where(
           and(
             eq(plans.userId, userId),
-            sql`${plans.status} = 'active'`,
-            sql`${plans.type} = 'exam'`,
+            eq(plans.status, 'active'),
+            eq(plans.type, 'exam'),
             sql`${plans.endDate} IS NOT NULL`,
             gte(plans.endDate!, today),
           ),
@@ -135,7 +114,7 @@ export async function GET() {
         .from(topics)
         .innerJoin(plans, eq(topics.planId, plans.id))
         .leftJoin(
-          sql`${parentTopics} pt`,
+          sql`${topics} pt`,
           sql`${topics.parentId} = pt.id`,
         )
         .where(
@@ -148,7 +127,7 @@ export async function GET() {
         .orderBy(topics.priority, topics.estimatedHours)
         .limit(5),
 
-      // 6. Recent plans — LIMIT 2, with completion %
+      // 6. Recent plans — LIMIT 2 with completion %
       db
         .select({
           id: plans.id,
@@ -169,7 +148,7 @@ export async function GET() {
         .orderBy(desc(plans.createdAt))
         .limit(2),
 
-      // 7. Today's active habits with log status — LIMIT 5
+      // 7. Today's active habits with log status — LIMIT 20, filter in JS
       db
         .select({
           id: habits.id,
@@ -187,7 +166,7 @@ export async function GET() {
         )
         .where(and(eq(habits.userId, userId), eq(habits.isActive, true)))
         .orderBy(habits.priority)
-        .limit(20), // filter in JS after frequency check, then slice to 5
+        .limit(20),
 
       // 8. Recently added habits — LIMIT 2
       db
@@ -196,7 +175,6 @@ export async function GET() {
           title: habits.title,
           color: habits.color,
           icon: habits.icon,
-          createdAt: habits.createdAt,
         })
         .from(habits)
         .where(and(eq(habits.userId, userId), eq(habits.isActive, true)))
@@ -204,21 +182,20 @@ export async function GET() {
         .limit(2),
     ])
 
-    // ── Post-process ─────────────────────────────────────────────────────────
+    // ── Post-process (minimal — most work done in SQL) ───────────
 
-    // Streak
     const streakData = streakRow[0] ?? { current: 0, longest: 0, lastActiveDate: null }
-
-    // Analytics
     const weeklyStudyHours = Math.round((Number(weeklyHoursRow[0]?.total) || 0) * 10) / 10
     const habitsCompletedToday = Number(habitsCompletedRow[0]?.count) || 0
+
     let remainingExamDays: number | null = null
     if (nearestExamRow[0]?.endDate) {
-      const diff = new Date(nearestExamRow[0].endDate).getTime() - now.getTime()
-      remainingExamDays = Math.ceil(diff / (1000 * 60 * 60 * 24))
+      remainingExamDays = Math.ceil(
+        (new Date(nearestExamRow[0].endDate).getTime() - now.getTime()) / 86_400_000,
+      )
     }
 
-    // Today's topics (already limited to 5 from DB)
+    // Today's topics — already limited to 5 from DB
     const todaysTopics = todaysTopicsRaw.map(t => ({
       id: t.id,
       title: t.title,
@@ -241,7 +218,7 @@ export async function GET() {
           : 0,
     }))
 
-    // Filter today's habits by frequency, then limit to 5
+    // Filter today's habits by frequency, then cap at 5
     const dayIndex = now.getDay() === 0 ? 7 : now.getDay()
     const todaysHabits = todaysHabitsRaw
       .filter(h => {
@@ -273,19 +250,9 @@ export async function GET() {
           longest: streakData.longest,
           lastActiveDate: streakData.lastActiveDate,
         },
-        analytics: {
-          weeklyStudyHours,
-          habitsCompletedToday,
-          remainingExamDays,
-        },
-        plannerOverview: {
-          todaysTopics,
-          recentPlans,
-        },
-        habitOverview: {
-          todaysHabits,
-          recentHabits,
-        },
+        analytics: { weeklyStudyHours, habitsCompletedToday, remainingExamDays },
+        plannerOverview: { todaysTopics, recentPlans },
+        habitOverview: { todaysHabits, recentHabits },
       },
       {
         headers: {
